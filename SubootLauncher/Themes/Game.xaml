@@ -120,7 +120,9 @@
                 <ControlTemplate TargetType="Button">
                     <Grid>
                         <Path x:Name="Shape" Stretch="Fill" Fill="{StaticResource YellowGradient}" Data="M 10,0 L 100,0 L 90,30 L 0,30 Z"/>
-                        <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <ContentPresenter.Resources><Style TargetType="TextBlock"/></ContentPresenter.Resources>
+                    </ContentPresenter>
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
@@ -149,7 +151,9 @@
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
                     <Border x:Name="Box" Background="{StaticResource TileBrush}" BorderThickness="1" BorderBrush="Transparent">
-                        <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <ContentPresenter.Resources><Style TargetType="TextBlock"/></ContentPresenter.Resources>
+                    </ContentPresenter>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
@@ -175,7 +179,9 @@
             <Setter.Value>
                 <ControlTemplate TargetType="RadioButton">
                     <Border x:Name="Box" Background="{StaticResource YellowGradient}" Opacity="0.5" Padding="16,6" Margin="0,0,3,0">
-                        <ContentPresenter HorizontalAlignment="Center"/>
+                        <ContentPresenter HorizontalAlignment="Center">
+                        <ContentPresenter.Resources><Style TargetType="TextBlock"/></ContentPresenter.Resources>
+                    </ContentPresenter>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
