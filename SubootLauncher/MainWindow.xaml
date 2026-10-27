@@ -19,12 +19,13 @@
                     <TextBlock x:Name="AccountRole" HorizontalAlignment="Right" Style="{StaticResource Muted}"/>
                 </StackPanel>
                 <Button x:Name="StaffButton" Content="Модерация" Style="{StaticResource TileButton}" Margin="0,0,6,0" Visibility="Collapsed" Click="OnStaff"/>
+                <Button Content="Оформление" Style="{StaticResource TileButton}" Margin="0,0,6,0" Click="OnTheme"/>
                 <Button Content="Сменить пароль" Style="{StaticResource TileButton}" Margin="0,0,6,0" Click="OnChangePassword"/>
                 <Button Content="Выйти" Style="{StaticResource TileButton}" Click="OnLogout"/>
             </StackPanel>
             <StackPanel>
-                <TextBlock Text="WARFACE 2013" FontSize="30" FontWeight="Bold" FontStyle="Italic" Foreground="#FFE9EBEE"/>
-                <TextBlock Text="Частный сервер · Suboot Games" Style="{StaticResource Muted}"/>
+                <TextBlock Text="WARFACE 2013" Style="{StaticResource Logo}"/>
+                <TextBlock Text="Частный сервер · Suboot Games" Style="{StaticResource LogoSub}"/>
             </StackPanel>
         </DockPanel>
 
@@ -38,7 +39,7 @@
             <!-- Персонаж -->
             <Border Grid.Column="0" Style="{StaticResource Panel}">
                 <StackPanel>
-                    <Rectangle Height="3" Width="140" Fill="{StaticResource YellowGradient}" HorizontalAlignment="Left" Margin="0,-18,0,14"/>
+                    <Rectangle Style="{StaticResource PanelAccent}"/>
                     <TextBlock Text="Персонаж" Style="{StaticResource Title}" Margin="0,0,0,14"/>
                     <StackPanel x:Name="ProfilePanel" Orientation="Horizontal">
                         <!-- Звание: шестиугольник с номером -->
@@ -60,7 +61,7 @@
             <!-- Серверы -->
             <Border Grid.Column="2" Style="{StaticResource Panel}">
                 <StackPanel>
-                    <Rectangle Height="3" Width="120" Fill="{StaticResource YellowGradient}" HorizontalAlignment="Left" Margin="0,-18,0,14"/>
+                    <Rectangle Style="{StaticResource PanelAccent}"/>
                     <TextBlock Text="Серверы" Style="{StaticResource Title}" Margin="0,0,0,12"/>
                     <ListBox x:Name="ServerList" Background="Transparent" BorderThickness="0" SelectionChanged="OnServerSelected">
                         <ListBox.ItemContainerStyle>

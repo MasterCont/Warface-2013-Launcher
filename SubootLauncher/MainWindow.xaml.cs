@@ -171,6 +171,19 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>Переключение оформления: сохраняем выбор и перезапускаем лаунчер (сессия сохранена — вход не нужен).</summary>
+    private void OnTheme(object sender, RoutedEventArgs e)
+    {
+        var next = App.Settings.Theme == "game" ? "classic" : "game";
+        var answer = MessageBox.Show(this, $"Переключить оформление на «{App.Themes[next].Name}»? Лаунчер перезапустится.",
+            "Оформление", MessageBoxButton.OKCancel, MessageBoxImage.Question);
+        if (answer != MessageBoxResult.OK) return;
+        App.Settings.Theme = next;
+        App.Settings.Save();
+        System.Diagnostics.Process.Start(Environment.ProcessPath!);
+        Application.Current.Shutdown();
+    }
+
     private void OnChangePassword(object sender, RoutedEventArgs e)
     {
         new ChangePasswordWindow(_me.Login) { Owner = this }.ShowDialog();

@@ -5,8 +5,8 @@
         WindowStartupLocation="CenterScreen" ResizeMode="NoResize"
         Background="{StaticResource LobbyBackground}">
     <StackPanel Margin="28">
-        <TextBlock Text="WARFACE 2013" FontSize="34" FontWeight="Bold" FontStyle="Italic" Foreground="#FFE9EBEE"/>
-        <TextBlock Text="Частный сервер · Suboot Games" Style="{StaticResource Muted}" Margin="0,0,0,18"/>
+        <TextBlock Text="WARFACE 2013" Style="{StaticResource Logo}"/>
+        <TextBlock Text="Частный сервер · Suboot Games" Style="{StaticResource LogoSub}" Margin="0,0,0,18"/>
 
         <!-- Вкладки «Вход / Регистрация» — жёлтые полосы, как вкладки классов в игре -->
         <StackPanel Orientation="Horizontal" Margin="0,0,0,14">

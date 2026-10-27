@@ -12,9 +12,18 @@ public partial class App : Application
     public static ApiClient Api { get; } = new();
     public static Settings Settings { get; } = Settings.Load();
 
+    /// <summary>Оформления: ключ → название и файл темы.</summary>
+    public static readonly Dictionary<string, (string Name, string File)> Themes = new()
+    {
+        ["classic"] = ("Сайт 2013", "Themes/Classic.xaml"),
+        ["game"] = ("Как в игре", "Themes/Game.xaml"),
+    };
+
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        var theme = Themes.GetValueOrDefault(Settings.Theme ?? "classic", Themes["classic"]);
+        Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri(theme.File, UriKind.Relative) });
 
         var session = Settings.LoadSession();
         if (session != null)

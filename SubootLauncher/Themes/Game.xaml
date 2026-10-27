@@ -33,7 +33,33 @@
         <GradientStop Color="#8098D7FD" Offset="1"/>
     </LinearGradientBrush>
 
+    <RadialGradientBrush x:Key="LobbyBackground" Center="0.2,0.05" GradientOrigin="0.2,0.05" RadiusX="1.1" RadiusY="0.9">
+        <GradientStop Color="#FF2A2A2A" Offset="0"/>
+        <GradientStop Color="#FF101010" Offset="0.55"/>
+        <GradientStop Color="#FF050505" Offset="1"/>
+    </RadialGradientBrush>
+
     <FontFamily x:Key="UiFont">Segoe UI</FontFamily>
+    <FontFamily x:Key="HeadFont">Segoe UI</FontFamily>
+
+    <Style x:Key="Logo" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="34"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="FontStyle" Value="Italic"/>
+        <Setter Property="Foreground" Value="#FFE9EBEE"/>
+    </Style>
+    <Style x:Key="LogoSub" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="#FFFDEDC0"/>
+        <Setter Property="FontSize" Value="12"/>
+    </Style>
+    <!-- Короткая жёлтая черта над заголовком панели, как у «Поставщики» -->
+    <Style x:Key="PanelAccent" TargetType="Rectangle">
+        <Setter Property="Height" Value="3"/>
+        <Setter Property="Width" Value="140"/>
+        <Setter Property="Fill" Value="{StaticResource YellowGradient}"/>
+        <Setter Property="HorizontalAlignment" Value="Left"/>
+        <Setter Property="Margin" Value="0,-18,0,14"/>
+    </Style>
 
     <!-- Текст -->
     <Style TargetType="TextBlock">

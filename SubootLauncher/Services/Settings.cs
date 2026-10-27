@@ -17,6 +17,8 @@ public class Settings
 
     public string? GamePath { get; set; }
     public string? ServerId { get; set; }
+    /// <summary>Оформление: classic (сайт 2013, по умолчанию) или game (как в игре).</summary>
+    public string? Theme { get; set; }
 
     public static Settings Load()
     {
