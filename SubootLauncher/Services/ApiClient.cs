@@ -49,6 +49,47 @@ public record GameSession(
     GameInfo Game,
     string[] Args);
 
+// --- Модерация ---
+
+public record OnlinePlayer(long ProfileId, string Uid, string Nick, long Experience, int Rank, string Channel, int? RoomId, bool InMatch)
+{
+    public string Where => InMatch ? "в матче" : RoomId != null ? "в комнате" : "в лобби";
+}
+
+public record OnlineData(OnlinePlayer[] Players, string[] UnavailableChannels);
+
+public record BanInfo(int Id, string Uid, string? Nick, string Reason, DateTime? Until, string CreatedBy, DateTime CreatedAt,
+    DateTime? RevokedAt, string? RevokedBy, bool? Active)
+{
+    public string UntilText => Until is { } until ? "до " + until.ToLocalTime().ToString("dd.MM.yyyy HH:mm") : "бессрочно";
+    public string Summary => $"{Nick} · {UntilText} · {Reason} · выдал {CreatedBy}" + (RevokedAt != null ? $" · снят ({RevokedBy})" : "");
+}
+
+public record PlayerOnline(string Channel, int? RoomId, bool InMatch);
+
+public record PlayerDetails(long Id, string Nick, int Rank, long Experience, string? Clan, long PvpRatingPoints, string Uid,
+    MoneyInfo Money, int Items, PlayerOnline? Online, BanInfo[] Bans);
+
+public record InviteUser(long Uid, string Login, DateTime At);
+
+public record InviteInfo(int Id, string CodeHint, string? Note, int MaxUses, int Uses, DateTime CreatedAt, DateTime? ExpiresAt,
+    DateTime? RevokedAt, InviteUser[] UsedBy)
+{
+    public string State => RevokedAt != null ? "отозван" : Uses >= MaxUses ? "использован"
+        : ExpiresAt is { } expires && expires < DateTime.UtcNow ? "истёк" : "активен";
+    public string Summary => $"#{Id}  {CodeHint}  {State}  {Uses}/{MaxUses}  {Note}"
+        + (UsedBy.Length > 0 ? "  → " + string.Join(", ", UsedBy.Select(u => u.Login)) : "");
+}
+
+public record CreatedInvite(string Code, int Id, string? Note, int MaxUses, DateTime? ExpiresAt);
+
+public record AccountRow(long Uid, string Login, string Role, DateTime CreatedAt, DateTime? LastLoginAt, DateTime? DisabledAt, string? Nick)
+{
+    public string Summary => $"{Uid,-4} {Login}  ·  {Nick ?? "персонаж не создан"}"
+        + (Role != "player" ? $"  ·  {Role}" : "")
+        + (LastLoginAt is { } last ? $"  ·  вход {last.ToLocalTime():dd.MM HH:mm}" : "");
+}
+
 /// <summary>Ошибка API с понятным игроку текстом.</summary>
 public class ApiException(string message, int code) : Exception(message)
 {
@@ -80,6 +121,10 @@ public class ApiClient
         ["Too many failed attempts, try again later"] = "Слишком много неудачных попыток, попробуйте через 10 минут",
         ["Session expired, log in again"] = "Сессия истекла, войдите снова",
         ["Account is disabled"] = "Аккаунт отключён",
+        ["Only an admin can ban permanently, specify hours"] = "Бессрочно банит только админ — укажите срок в часах",
+        ["No masterserver channel is reachable"] = "Игровые каналы недоступны",
+        ["Active invite not found"] = "Активный ключ не найден",
+        ["You cannot remove your own admin role"] = "Нельзя снять админку с самого себя",
     };
 
     private readonly HttpClient _http = new() { BaseAddress = new Uri(BaseUrl), Timeout = TimeSpan.FromSeconds(20) };
@@ -113,7 +158,68 @@ public class ApiClient
     public Task LogoutAsync(string session) =>
         SendAsync<JsonElement>(HttpMethod.Post, "/v1/auth/logout", new { session });
 
-    private async Task<T> SendAsync<T>(HttpMethod method, string path, object? body = null)
+    // --- Модерация (нужна сессия модератора или админа в StaffSession) ---
+
+    public Task<OnlineData> GetOnlineAsync() => SendAsync<OnlineData>(HttpMethod.Get, "/v1/mod/online");
+
+    public Task<PlayerDetails> GetPlayerAsync(string nick) => SendAsync<PlayerDetails>(HttpMethod.Get, "/v1/mod/players/" + Uri.EscapeDataString(nick));
+
+    public Task<string> MessageAsync(string nick, string text) =>
+        SendForReasonAsync(HttpMethod.Post, "/v1/mod/players/" + Uri.EscapeDataString(nick) + "/message", new { text });
+
+    public Task<string> KickAsync(string nick) =>
+        SendForReasonAsync(HttpMethod.Post, "/v1/mod/players/" + Uri.EscapeDataString(nick) + "/kick", new { });
+
+    public Task<string> BanAsync(string nick, double? hours, string reason) =>
+        SendForReasonAsync(HttpMethod.Post, "/v1/mod/players/" + Uri.EscapeDataString(nick) + "/ban", new { hours, reason });
+
+    public Task<string> UnbanAsync(string nick) =>
+        SendForReasonAsync(HttpMethod.Delete, "/v1/mod/players/" + Uri.EscapeDataString(nick) + "/ban");
+
+    public Task<BanInfo[]> GetBansAsync() => SendAsync<BanInfo[]>(HttpMethod.Get, "/v1/mod/bans");
+
+    public Task<string> BroadcastAsync(string text) => SendForReasonAsync(HttpMethod.Post, "/v1/mod/broadcast", new { text });
+
+    // --- Только админ ---
+
+    public Task<InviteInfo[]> GetInvitesAsync() => SendAsync<InviteInfo[]>(HttpMethod.Get, "/v1/admin/invites");
+
+    public Task<CreatedInvite> CreateInviteAsync(string? note, int uses, double? days) =>
+        SendAsync<CreatedInvite>(HttpMethod.Post, "/v1/admin/invites", new { note, uses, days });
+
+    public Task<string> RevokeInviteAsync(int id) => SendForReasonAsync(HttpMethod.Delete, "/v1/admin/invites/" + id);
+
+    public Task<AccountRow[]> GetAccountsAsync() => SendAsync<AccountRow[]>(HttpMethod.Get, "/v1/admin/accounts");
+
+    public Task<string> SetRoleAsync(string login, string role) =>
+        SendForReasonAsync(HttpMethod.Post, "/v1/admin/accounts/" + Uri.EscapeDataString(login) + "/role", new { role });
+
+    public Task<string> SetPasswordAsync(string login, string password) =>
+        SendForReasonAsync(HttpMethod.Post, "/v1/admin/accounts/" + Uri.EscapeDataString(login) + "/password", new { password });
+
+    // Ответ сервера по-русски для сообщений в панели модерации
+    private static readonly Dictionary<string, string> Results = new()
+    {
+        ["Message delivered"] = "Сообщение доставлено",
+        ["Player is offline, message will be shown at next login"] = "Игрок не в сети: сообщение покажется при входе",
+        ["Player kicked"] = "Игрок исключён с сервера",
+        ["Player banned permanently"] = "Игрок заблокирован бессрочно",
+        ["Ban revoked"] = "Бан снят",
+        ["Invite revoked"] = "Ключ отозван",
+        ["Role set"] = "Роль изменена",
+        ["Password set"] = "Пароль изменён",
+    };
+
+    private async Task<string> SendForReasonAsync(HttpMethod method, string path, object? body = null)
+    {
+        var reason = await SendAsync<string>(method, path, body, reasonOnly: true);
+        if (Results.TryGetValue(reason, out var translated)) return translated;
+        if (reason.StartsWith("Player banned for ")) return "Игрок заблокирован на " + reason["Player banned for ".Length..].Replace("hours", "ч");
+        if (reason.StartsWith("Message sent to ")) return "Сообщение отправлено, получателей: " + reason["Message sent to ".Length..].Replace(" players", "");
+        return reason;
+    }
+
+    private async Task<T> SendAsync<T>(HttpMethod method, string path, object? body = null, bool reasonOnly = false)
     {
         using var request = new HttpRequestMessage(method, path);
         if (body != null) request.Content = JsonContent.Create(body);
@@ -137,6 +243,7 @@ public class ApiClient
             var reason = root.TryGetProperty("reason", out var r) ? r.GetString() ?? "" : "";
             throw new ApiException(Reasons.GetValueOrDefault(reason, Translate(reason)), code);
         }
+        if (reasonOnly) return (T)(object)(root.GetProperty("reason").GetString() ?? "");
         var data = root.GetProperty("data");
         return data.Deserialize<T>(Json)!;
     }
@@ -145,6 +252,11 @@ public class ApiClient
     {
         _ when reason.StartsWith("Login must") => "Логин: 3–24 символа, латинские буквы, цифры, _ . -",
         _ when reason.StartsWith("Password must") => "Пароль: от 6 до 128 символов",
+        _ when reason.StartsWith("Player '") && reason.EndsWith("' not found") => "Игрок " + reason[7..^11] + " не найден",
+        _ when reason.EndsWith("' is not online") => "Игрок " + reason[8..^15] + " сейчас не в сети",
+        _ when reason.EndsWith("' has no active ban") => "У игрока " + reason[8..^19] + " нет активного бана",
+        _ when reason.StartsWith("Moderators can ban for at most") => "Модератор может банить максимум на " + reason[31..].Replace(" hours", " ч"),
+        _ when reason.StartsWith("Role '") => "Недостаточно прав для этого действия",
         "" => "Ошибка сервера",
         _ => reason,
     };

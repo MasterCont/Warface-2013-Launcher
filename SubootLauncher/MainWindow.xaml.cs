@@ -191,7 +191,7 @@ public partial class MainWindow : Window
 
     private void OnStaff(object sender, RoutedEventArgs e)
     {
-        MessageBox.Show(this, "Панель модерации появится в следующей версии лаунчера.", "Модерация");
+        new ModerationWindow(_session, _me) { Owner = this }.Show();
     }
 
     private async void OnLogout(object sender, RoutedEventArgs e)
