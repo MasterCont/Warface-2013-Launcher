@@ -27,6 +27,8 @@ public partial class ModerationWindow : Window
         Title = $"Модерация — {me.Login} ({(_isAdmin ? "администратор" : "модератор")})";
         TabInvites.Visibility = _isAdmin ? Visibility.Visible : Visibility.Collapsed;
         TabAccounts.Visibility = _isAdmin ? Visibility.Visible : Visibility.Collapsed;
+        TabShop.Visibility = _isAdmin ? Visibility.Visible : Visibility.Collapsed;
+        PageShop.Init(_api, Status);
         Loaded += async (_, _) => await LoadOnlineAsync();
     }
 
@@ -43,6 +45,7 @@ public partial class ModerationWindow : Window
             (TabBroadcast, PageBroadcast, null),
             (TabInvites, PageInvites, LoadInvitesAsync),
             (TabAccounts, PageAccounts, LoadAccountsAsync),
+            (TabShop, PageShop, PageShop.LoadOnceAsync),
         };
         foreach (var (tab, page, load) in pages)
         {
@@ -189,6 +192,15 @@ public partial class ModerationWindow : Window
             : "○ Не в сети";
         PlayerOnline.Foreground = (Brush)FindResource(p.Online != null ? "OnlineBrush" : "MutedBrush");
         PlayerBans.ItemsSource = p.Bans.Length > 0 ? p.Bans : null;
+
+        AdminProfilePanel.Visibility = _isAdmin ? Visibility.Visible : Visibility.Collapsed;
+        ExpBox.Text = p.Experience.ToString();
+        GameMoneyBox.Text = p.Money.Game.ToString();
+        CryMoneyBox.Text = p.Money.Cry.ToString();
+        CrownMoneyBox.Text = p.Money.Crown.ToString();
+        ExpHint.Text = p.Online != null
+            ? "Игрок в сети: изменения применятся за ~10 с, он увидит их после перезахода."
+            : "Игрок не в сети: изменения сохранятся сразу.";
     }
 
     private async void OnMessage(object sender, RoutedEventArgs e) => await Run(async () =>
@@ -238,6 +250,47 @@ public partial class ModerationWindow : Window
         Status(await _api.UnbanAsync(_player.Nick));
         await RefreshPlayerAsync();
     });
+
+    // --- Профиль и склад (админ) ---
+
+    private async void OnSaveProfile(object sender, RoutedEventArgs e) => await Run(async () =>
+    {
+        if (_player == null) return;
+        var boxes = new (string Field, string Title, TextBox Box, long Current)[]
+        {
+            ("experience", "опыт", ExpBox, _player.Experience),
+            ("game_money", "варбаксы", GameMoneyBox, _player.Money.Game),
+            ("cry_money", "кредиты", CryMoneyBox, _player.Money.Cry),
+            ("crown_money", "короны", CrownMoneyBox, _player.Money.Crown),
+        };
+        var values = new Dictionary<string, long>();
+        var lines = new List<string>();
+        foreach (var (field, title, box, current) in boxes)
+        {
+            if (!long.TryParse(box.Text.Trim().Replace(" ", ""), out var value) || value < 0 || value > int.MaxValue)
+            {
+                Status($"{title}: целое число от 0 до {int.MaxValue:N0}", error: true);
+                return;
+            }
+            if (value == current) continue;
+            values[field] = value;
+            lines.Add($"{title}: {current:N0} → {value:N0}");
+        }
+        if (values.Count == 0)
+        {
+            Status("Значения не изменились");
+            return;
+        }
+        if (!Confirm($"Изменить профиль {_player.Nick}?\n\n" + string.Join("\n", lines))) return;
+        Status(await _api.SetProfileAsync(_player.Nick, values));
+        await RefreshPlayerAsync();
+    });
+
+    private void OnStorage(object sender, RoutedEventArgs e)
+    {
+        if (_player == null) return;
+        new StorageWindow(_api, _player.Nick) { Owner = this }.Show();
+    }
 
     // --- Баны ---
 

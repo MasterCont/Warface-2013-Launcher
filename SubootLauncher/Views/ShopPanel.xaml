@@ -1,0 +1,120 @@
+<UserControl x:Class="SubootLauncher.Views.ShopPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Магазин: слева предложения (по 15 на странице), справа правка выбранного -->
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="18"/>
+            <ColumnDefinition Width="330"/>
+        </Grid.ColumnDefinitions>
+
+        <DockPanel Grid.Column="0">
+            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                <Button DockPanel.Dock="Right" Content="Найти" Style="{StaticResource TileButton}" Margin="8,0,0,0" Click="OnSearch"/>
+                <TextBox x:Name="SearchBox" ToolTip="Имя предмета или номер предложения" PreviewKeyDown="OnSearchKey"/>
+            </DockPanel>
+            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                <Button DockPanel.Dock="Right" Content="Новое предложение…" Style="{StaticResource TileButton}" Click="OnNewOffer"/>
+                <ComboBox x:Name="GroupBox" Width="130" Margin="0,0,8,0" SelectionChanged="OnFilterChanged"/>
+                <ComboBox x:Name="StateBox" Width="130" HorizontalAlignment="Left" SelectionChanged="OnFilterChanged"/>
+            </DockPanel>
+            <DockPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
+                <Button x:Name="PrevPage" DockPanel.Dock="Left" Content="‹" Width="40" Style="{StaticResource TileButton}" Click="OnPrevPage"/>
+                <Button x:Name="NextPage" DockPanel.Dock="Left" Content="›" Width="40" Style="{StaticResource TileButton}" Margin="4,0,0,0" Click="OnNextPage"/>
+                <TextBlock x:Name="PageText" Style="{StaticResource Muted}" VerticalAlignment="Center" Margin="10,0"/>
+            </DockPanel>
+            <ListBox x:Name="OffersList" Style="{StaticResource Rows}" SelectionChanged="OnOfferSelected">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="{Binding Title}" Foreground="#FFF2F2F2" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Style="{StaticResource Muted}">
+                                    <Run Text="{Binding Price, Mode=OneWay}"/>
+                                    <Run Text="·"/>
+                                    <Run Text="{Binding Term, Mode=OneWay}"/>
+                                </TextBlock>
+                            </StackPanel>
+                            <TextBlock Grid.Column="1" Text="{Binding Marks}" Foreground="{StaticResource YellowBrush}" Margin="8,0,0,0"/>
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </DockPanel>
+
+        <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <TextBlock x:Name="EditorTitle" Style="{StaticResource Title}" TextWrapping="Wrap" Text="Предложение"/>
+                <TextBlock x:Name="EditorInfo" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,4,0,0"
+                           Text="Выберите предложение в списке или создайте новое."/>
+
+                <StackPanel x:Name="Editor" IsEnabled="False">
+                    <TextBlock Text="Цена" Style="{StaticResource FieldLabel}"/>
+                    <UniformGrid Columns="3">
+                        <StackPanel Margin="0,0,6,0">
+                            <TextBlock Text="варбаксы" Style="{StaticResource Muted}"/>
+                            <TextBox x:Name="GameMoneyBox"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,6,0">
+                            <TextBlock Text="кредиты" Style="{StaticResource Muted}"/>
+                            <TextBox x:Name="CryMoneyBox"/>
+                        </StackPanel>
+                        <StackPanel>
+                            <TextBlock Text="короны" Style="{StaticResource Muted}"/>
+                            <TextBox x:Name="CrownMoneyBox"/>
+                        </StackPanel>
+                    </UniformGrid>
+
+                    <UniformGrid Columns="2" Margin="0,4,0,0">
+                        <StackPanel Margin="0,0,6,0">
+                            <TextBlock Text="Скидка (минус к цене)" Style="{StaticResource FieldLabel}"/>
+                            <TextBox x:Name="DiscountBox"/>
+                        </StackPanel>
+                        <StackPanel>
+                            <TextBlock Text="Мин. звание" Style="{StaticResource FieldLabel}"/>
+                            <TextBox x:Name="RankBox"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,6,0">
+                            <TextBlock Text="Срок: 7d, 12h, 1m или пусто" Style="{StaticResource FieldLabel}"/>
+                            <TextBox x:Name="TermBox"/>
+                        </StackPanel>
+                        <StackPanel>
+                            <TextBlock Text="Количество, шт." Style="{StaticResource FieldLabel}"/>
+                            <TextBox x:Name="QuantityBox"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,6,0">
+                            <TextBlock Text="Прочность" Style="{StaticResource FieldLabel}"/>
+                            <TextBox x:Name="DurabilityBox"/>
+                        </StackPanel>
+                        <StackPanel>
+                            <TextBlock Text="Цена ремонта" Style="{StaticResource FieldLabel}"/>
+                            <TextBox x:Name="RepairBox"/>
+                        </StackPanel>
+                    </UniformGrid>
+
+                    <TextBlock Text="Метка в магазине" Style="{StaticResource FieldLabel}"/>
+                    <ComboBox x:Name="StatusBox"/>
+                    <CheckBox x:Name="RefundableBox" Content="Можно вернуть (продать обратно)" Margin="0,8,0,0"/>
+
+                    <TextBlock x:Name="OriginalText" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,10,0,0"/>
+
+                    <WrapPanel Margin="0,12,0,0">
+                        <Button x:Name="SaveButton" Content="Сохранить" Style="{StaticResource YellowButton}" Margin="0,0,6,6" Click="OnSave"/>
+                    </WrapPanel>
+                    <WrapPanel>
+                        <Button x:Name="HideButton" Content="Снять с продажи" Style="{StaticResource TileButton}" Margin="0,0,6,6" Click="OnHide"/>
+                        <Button x:Name="ShowButton" Content="Вернуть в продажу" Style="{StaticResource TileButton}" Margin="0,0,6,6" Click="OnShow"/>
+                        <Button x:Name="ResetButton" Content="Исходные значения" Style="{StaticResource TileButton}" Margin="0,0,6,6" Click="OnReset"/>
+                    </WrapPanel>
+                    <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,6,0,0"
+                               Text="Срок, количество и прочность определяют тип: со сроком — аренда, с количеством — расходник, иначе навсегда (оружию и снаряжению нужна прочность, обычно 36000). Игроки в сети получат новый магазин через ~10 секунд."/>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

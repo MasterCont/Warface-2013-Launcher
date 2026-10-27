@@ -24,6 +24,8 @@ public partial class App : Application
         base.OnStartup(e);
         var theme = Themes.GetValueOrDefault(Settings.Theme ?? "classic", Themes["classic"]);
         Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri(theme.File, UriKind.Relative) });
+        // Общие для обеих тем стили (списки и поля панелей) — после темы, они ссылаются на её кисти
+        Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("Themes/Shared.xaml", UriKind.Relative) });
 
         var session = Settings.LoadSession();
         if (session != null)

@@ -1,0 +1,96 @@
+<Window x:Class="SubootLauncher.Views.StorageWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Склад игрока" Width="940" Height="640" MinWidth="780" MinHeight="460"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource LobbyBackground}">
+    <Grid Margin="14">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="14"/>
+            <ColumnDefinition Width="300"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Склад -->
+        <Border Grid.Column="0" Style="{StaticResource Panel}">
+            <DockPanel>
+                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                    <Button DockPanel.Dock="Right" Content="Обновить" Style="{StaticResource TileButton}" Margin="8,0,0,0" Click="OnRefresh"/>
+                    <TextBlock x:Name="StorageTitle" Style="{StaticResource Title}" VerticalAlignment="Center"/>
+                </DockPanel>
+                <TextBox x:Name="FilterBox" DockPanel.Dock="Top" Margin="0,0,0,8" ToolTip="Фильтр по имени или категории" TextChanged="OnFilter"/>
+                <ListBox x:Name="ItemsList" Style="{StaticResource Rows}" SelectionChanged="OnItemSelected">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel>
+                                <TextBlock Text="{Binding Title}" Foreground="#FFF2F2F2" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Text="{Binding State}" Style="{StaticResource Muted}"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+        </Border>
+
+        <!-- Действия -->
+        <Border Grid.Column="2" Style="{StaticResource Panel}">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <TextBlock Text="Выбранный предмет" Style="{StaticResource Title}"/>
+                    <TextBlock x:Name="SelectedText" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,4,0,0"
+                               Text="Выберите предмет в списке."/>
+                    <StackPanel x:Name="ItemActions" IsEnabled="False">
+                        <WrapPanel Margin="0,10,0,0">
+                            <Button x:Name="RepairButton" Content="Починить" Style="{StaticResource TileButton}" Margin="0,0,6,6" Click="OnRepair"/>
+                            <Button x:Name="PermanentButton" Content="Сделать навсегда" Style="{StaticResource TileButton}" Margin="0,0,6,6" Click="OnPermanent"/>
+                        </WrapPanel>
+
+                        <StackPanel x:Name="RentalPanel">
+                            <TextBlock Text="Аренда: срок в часах от текущего момента" Style="{StaticResource FieldLabel}"/>
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Content="Задать" Style="{StaticResource TileButton}" Margin="6,0,0,0" Click="OnSetHours"/>
+                                <TextBox x:Name="HoursBox" Text="168"/>
+                            </DockPanel>
+                        </StackPanel>
+
+                        <StackPanel x:Name="QuantityPanel">
+                            <TextBlock Text="Количество" Style="{StaticResource FieldLabel}"/>
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Content="Задать" Style="{StaticResource TileButton}" Margin="6,0,0,0" Click="OnSetQuantity"/>
+                                <TextBox x:Name="QuantityBox"/>
+                            </DockPanel>
+                        </StackPanel>
+
+                        <Button Content="Удалить со склада" Style="{StaticResource TileButton}" HorizontalAlignment="Left" Margin="0,12,0,0" Click="OnRemove"/>
+                    </StackPanel>
+
+                    <Rectangle Height="1" Fill="#FF2C3036" Margin="0,18,0,12"/>
+
+                    <TextBlock Text="Выдать предмет" Style="{StaticResource Title}"/>
+                    <DockPanel Margin="0,8,0,0">
+                        <Button DockPanel.Dock="Right" Content="Выбрать…" Style="{StaticResource TileButton}" Margin="6,0,0,0" Click="OnPickItem"/>
+                        <TextBox x:Name="GiveNameBox" ToolTip="Внутреннее имя предмета, например smg01_shop"/>
+                    </DockPanel>
+                    <RadioButton x:Name="GivePermanent" Content="навсегда" IsChecked="True" Foreground="{StaticResource TextBrush}" Margin="0,8,0,0" GroupName="GiveKind"/>
+                    <DockPanel Margin="0,4,0,0">
+                        <RadioButton x:Name="GiveRental" Content="на дней:" Foreground="{StaticResource TextBrush}" VerticalAlignment="Center" Width="90" GroupName="GiveKind"/>
+                        <TextBox x:Name="GiveDaysBox" Text="7" GotFocus="OnDaysFocus"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,4,0,0">
+                        <RadioButton x:Name="GiveCount" Content="штук:" Foreground="{StaticResource TextBrush}" VerticalAlignment="Center" Width="90" GroupName="GiveKind"/>
+                        <TextBox x:Name="GiveCountBox" Text="10" GotFocus="OnCountFocus"/>
+                    </DockPanel>
+                    <Button Content="Выдать" Style="{StaticResource YellowButton}" HorizontalAlignment="Left" Margin="0,10,0,0" Click="OnGive"/>
+                    <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,0,0"
+                               Text="Выдача приходит игроку с уведомлением: в сети — за ~10 с, иначе при входе. Оружие и снаряжение обычно «навсегда» или «на дней», расходники (патроны, аптечки, жетоны) — «штук»."/>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <TextBlock x:Name="StatusText" Grid.Row="1" Grid.ColumnSpan="3" Margin="0,10,0,0" TextWrapping="Wrap"/>
+    </Grid>
+</Window>

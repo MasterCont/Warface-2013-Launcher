@@ -100,6 +100,62 @@ public record AccountRow(long Uid, string Login, string Role, DateTime CreatedAt
         + (LastLoginAt is { } last ? $"  ·  вход {last.ToLocalTime():dd.MM HH:mm}" : "");
 }
 
+// --- Администрирование: склад, магазин, каталог предметов ---
+
+public record DurabilityInfo(int Points, int Total);
+
+/// <summary>Предмет на складе игрока (kind: permanent | rental | consumable | default | unlimited).</summary>
+public record StorageItem(int Id, string Name, string Group, string Category, string Kind, bool Equipped,
+    DurabilityInfo? Durability, long? ExpiresAt, long? SecondsLeft, int? Quantity, long? BoughtAt)
+{
+    public string Title => ItemNames.Title(Name, Category);
+
+    public string State => Kind switch
+    {
+        "default" => "стандартный",
+        "rental" => SecondsLeft > 0 ? "аренда · осталось " + ItemNames.Duration(SecondsLeft.Value) : "аренда · истёк",
+        "consumable" => $"{Quantity} шт.",
+        "permanent" when Durability is { } d => $"навсегда · прочность {d.Points * 100 / Math.Max(1, d.Total)}%",
+        _ => "навсегда",
+    } + (Equipped ? " · надет" : "");
+}
+
+public record ShopOffer(int Id, string ItemName, string Group, string Category, string Classes,
+    long GameMoney, long CryMoney, long CrownMoney, long Discount, int Rank, int DurabilityPoints, long RepairCost,
+    int Quantity, string ExpirationTime, string OfferStatus, string ItemCategoryOverride, bool Refundable,
+    string State, ShopOffer? Original, string? UpdatedBy, string? UpdatedAt)
+{
+    public string Title => ItemNames.Title(ItemName, Category);
+
+    public string Price => string.Join(" + ", new[]
+    {
+        GameMoney > 0 ? $"{Math.Max(0, GameMoney - Discount):N0} WB" : null,
+        CryMoney > 0 ? $"{Math.Max(0, CryMoney - Discount):N0} кр." : null,
+        CrownMoney > 0 ? $"{Math.Max(0, CrownMoney - Discount):N0} корон" : null,
+    }.Where(p => p != null).DefaultIfEmpty("бесплатно"));
+
+    public string Term => ExpirationTime != "" ? ItemNames.Term(ExpirationTime)
+        : Quantity > 0 ? $"{Quantity} шт."
+        : "навсегда";
+
+    public string Marks => string.Join(" · ", new[]
+    {
+        State switch { "edited" => "изменено", "hidden" => "снято", "added" => "добавлено", _ => null },
+        OfferStatus != "NORMAL" ? OfferStatus : null,
+    }.Where(m => m != null));
+}
+
+public record ShopPage(ShopOffer[] Offers, int Page, int Pages, int Total, string[] Statuses);
+
+public record GameItem(string Name, string Group, string Category, string Classes)
+{
+    public string Title => ItemNames.Title(Name, Category);
+    public string GroupTitle => ItemNames.Group(Group);
+    public string CategoryTitle => ItemNames.Category(Category);
+}
+
+public record ItemsPage(GameItem[] Items, int Page, int Pages, int Total);
+
 /// <summary>Ошибка API с понятным игроку текстом.</summary>
 public class ApiException(string message, int code) : Exception(message)
 {
@@ -210,6 +266,46 @@ public class ApiClient
     public Task<string> SetPasswordAsync(string login, string password) =>
         SendForReasonAsync(HttpMethod.Post, "/v1/admin/accounts/" + Uri.EscapeDataString(login) + "/password", new { password });
 
+    // --- Администратор: профиль и склад игрока ---
+
+    private static string PlayerPath(string nick) => "/v1/admin/players/" + Uri.EscapeDataString(nick);
+
+    /// <summary>Точные значения опыта и денег (только переданные поля).</summary>
+    public Task<string> SetProfileAsync(string nick, Dictionary<string, long> values) =>
+        SendForReasonAsync(HttpMethod.Patch, PlayerPath(nick), values);
+
+    public Task<StorageItem[]> GetStorageAsync(string nick) => SendAsync<StorageItem[]>(HttpMethod.Get, PlayerPath(nick) + "/items");
+
+    /// <summary>Правка предмета: { repair = true } | { permanent = true } | { hours } | { quantity }.</summary>
+    public Task<string> EditItemAsync(string nick, int itemId, object change) =>
+        SendForReasonAsync(HttpMethod.Patch, PlayerPath(nick) + "/items/" + itemId, change);
+
+    public Task<string> RemoveItemAsync(string nick, int itemId) =>
+        SendForReasonAsync(HttpMethod.Delete, PlayerPath(nick) + "/items/" + itemId);
+
+    /// <summary>Выдача: { items = [{ name, days | quantity }] } и/или game_money, crown_money, experience.</summary>
+    public Task<string> GiveAsync(string nick, object gift) => SendForReasonAsync(HttpMethod.Post, PlayerPath(nick) + "/give", gift);
+
+    // --- Администратор: магазин и каталог предметов ---
+
+    public Task<ShopPage> GetShopAsync(string search, string? group, string? state, int page) =>
+        SendAsync<ShopPage>(HttpMethod.Get, $"/v1/admin/shop?page={page}&search={Uri.EscapeDataString(search)}"
+            + (group != null ? "&group=" + group : "") + (state != null ? "&state=" + state : ""));
+
+    public Task<string> UpdateOfferAsync(int id, Dictionary<string, object> changes) =>
+        SendForReasonAsync(HttpMethod.Patch, "/v1/admin/shop/" + id, changes);
+
+    public Task<string> AddOfferAsync(Dictionary<string, object> offer) => SendForReasonAsync(HttpMethod.Post, "/v1/admin/shop", offer);
+
+    public Task<string> HideOfferAsync(int id) => SendForReasonAsync(HttpMethod.Delete, "/v1/admin/shop/" + id);
+
+    public Task<string> ShowOfferAsync(int id) => SendForReasonAsync(HttpMethod.Post, $"/v1/admin/shop/{id}/show");
+
+    public Task<string> ResetOfferAsync(int id) => SendForReasonAsync(HttpMethod.Post, $"/v1/admin/shop/{id}/reset");
+
+    public Task<ItemsPage> GetItemsAsync(string search, string? group, int page) =>
+        SendAsync<ItemsPage>(HttpMethod.Get, $"/v1/admin/items?page={page}&search={Uri.EscapeDataString(search)}" + (group != null ? "&group=" + group : ""));
+
     // Ответ сервера по-русски для сообщений в панели модерации
     private static readonly Dictionary<string, string> Results = new()
     {
@@ -221,6 +317,17 @@ public class ApiClient
         ["Invite revoked"] = "Ключ отозван",
         ["Role set"] = "Роль изменена",
         ["Password set"] = "Пароль изменён",
+        ["Profile updated"] = "Профиль сохранён",
+        ["Item updated"] = "Предмет изменён",
+        ["Item removed"] = "Предмет удалён со склада",
+        ["Offer updated"] = "Предложение сохранено, в магазине игроков — через ~10 с",
+        ["Offer added"] = "Предложение добавлено, в магазине игроков — через ~10 с",
+        ["Offer hidden"] = "Снято с продажи",
+        ["Offer is on sale again"] = "Снова в продаже",
+        ["Offer restored to original"] = "Возвращены исходные значения",
+        ["Added offer deleted"] = "Добавленное предложение удалено",
+        ["Queued, the player will receive it within ~10 seconds"] = "Выдано: игрок получит в течение ~10 с",
+        ["Queued, the player will receive it at next login"] = "Выдано: игрок получит при следующем входе",
     };
 
     private async Task<string> SendForReasonAsync(HttpMethod method, string path, object? body = null)
@@ -228,6 +335,13 @@ public class ApiClient
         var reason = await SendAsync<string>(method, path, body, reasonOnly: true);
         if (Results.TryGetValue(reason, out var translated)) return translated;
         if (reason.StartsWith("Player banned for ")) return "Игрок заблокирован на " + reason["Player banned for ".Length..].Replace("hours", "ч");
+        // Правки онлайн-игрока и пересборка магазина: «<результат>: <пояснение>»
+        if (reason.EndsWith(": the player is online, changes apply within ~10 seconds and are visible after relogin"))
+            return Results.GetValueOrDefault(reason[..reason.IndexOf(':')], reason) + ". Игрок в сети: применится за ~10 с, увидит после перезахода";
+        if (reason.EndsWith(": queued, applied within ~10 seconds after the player logs in"))
+            return Results.GetValueOrDefault(reason[..reason.IndexOf(':')], reason) + ". Применится, когда игрок зайдёт";
+        if (reason.Contains(" (shop cache rebuild failed"))
+            return Results.GetValueOrDefault(reason[..reason.IndexOf(" (")], reason) + ", но кэш магазина не пересобрался: выполните на сервере warface cache rebuild shop";
         if (reason.StartsWith("Message sent to ")) return "Сообщение отправлено, получателей: " + reason["Message sent to ".Length..].Replace(" players", "");
         return reason;
     }
@@ -270,6 +384,17 @@ public class ApiClient
         _ when reason.EndsWith("' has no active ban") => "У игрока " + reason[8..^19] + " нет активного бана",
         _ when reason.StartsWith("Moderators can ban for at most") => "Модератор может банить максимум на " + reason[31..].Replace(" hours", " ч"),
         _ when reason.StartsWith("Role '") => "Недостаточно прав для этого действия",
+        "Default equipment cannot be removed" => "Стандартное снаряжение удалить нельзя",
+        _ when reason.EndsWith("is equipped and cannot be removed") => "Предмет надет на персонажа, удалить нельзя",
+        _ when reason.StartsWith("Item ") && reason.EndsWith(" not found in the profile") => "Предмета уже нет на складе, обновите список",
+        _ when reason.EndsWith(" has no durability") => "У этого предмета нет прочности",
+        _ when reason.EndsWith(" is not a rental item") => "Это не арендованный предмет",
+        _ when reason.EndsWith(" is not a consumable") => "Это не расходный предмет",
+        _ when reason.StartsWith("Unknown item '") => "Такого предмета нет в игре",
+        _ when reason.StartsWith("Invalid fields: ") => "Неверные значения: " + reason[16..],
+        _ when reason.StartsWith("Offer ") && reason.EndsWith(" not found") => "Предложение не найдено",
+        _ when reason.EndsWith(" is not hidden") => "Предложение и так в продаже",
+        _ when reason.EndsWith(" was added via API: delete it instead") => "Это добавленное предложение: его можно только удалить",
         "" => "Ошибка сервера",
         _ => reason,
     };
