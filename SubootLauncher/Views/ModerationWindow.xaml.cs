@@ -15,6 +15,9 @@ public partial class ModerationWindow : Window
     private readonly ApiClient _api;
     private readonly bool _isAdmin;
     private PlayerDetails? _player;
+    private string _search = "";
+    private int _page = 1;
+    private bool _playersLoaded;
 
     public ModerationWindow(string session, AccountInfo me)
     {
@@ -35,7 +38,7 @@ public partial class ModerationWindow : Window
         var pages = new (RadioButton Tab, FrameworkElement Page, Func<Task>? Load)[]
         {
             (TabOnline, PageOnline, LoadOnlineAsync),
-            (TabPlayer, PagePlayer, null),
+            (TabPlayer, PagePlayer, () => _playersLoaded ? Task.CompletedTask : LoadPlayersAsync()),
             (TabBans, PageBans, LoadBansAsync),
             (TabBroadcast, PageBroadcast, null),
             (TabInvites, PageInvites, LoadInvitesAsync),
@@ -96,20 +99,76 @@ public partial class ModerationWindow : Window
     {
         if (OnlineList.SelectedItem is not OnlinePlayer player) return;
         NickBox.Text = player.Nick;
+        _search = player.Nick;
+        _page = 1;
+        _playersLoaded = true; // список загрузим сами, вкладка не должна перезагружать его
         TabPlayer.IsChecked = true;
-        await Run(FindPlayerAsync);
+        await Run(async () =>
+        {
+            await LoadPlayersAsync();
+            await OpenPlayerAsync(player.Nick);
+        });
     }
 
     // --- Игрок ---
 
-    private async void OnFindPlayer(object sender, RoutedEventArgs e) => await Run(FindPlayerAsync);
-
-    private async Task FindPlayerAsync()
+    private async Task LoadPlayersAsync()
     {
-        var nick = NickBox.Text.Trim();
-        if (nick == "") return;
+        var result = await _api.GetPlayersAsync(_search, _page);
+        _playersLoaded = true;
+        _page = result.Page;
+        PlayersList.ItemsSource = result.Players;
+        PageText.Text = result.Total == 0 ? "никого не найдено" : $"стр. {result.Page} из {result.Pages} · игроков {result.Total}";
+        PrevPage.IsEnabled = result.Page > 1;
+        NextPage.IsEnabled = result.Page < result.Pages;
+        // Если открытый игрок есть на странице — подсвечиваем его
+        if (_player != null) PlayersList.SelectedItem = result.Players.FirstOrDefault(p => p.Nick == _player.Nick);
+    }
+
+    private async void OnSearchPlayers(object sender, RoutedEventArgs e) => await SearchPlayers();
+
+    private async void OnNickKey(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key == System.Windows.Input.Key.Enter) await SearchPlayers();
+    }
+
+    private async Task SearchPlayers()
+    {
+        _search = NickBox.Text.Trim();
+        _page = 1;
+        await Run(LoadPlayersAsync);
+    }
+
+    private async void OnPrevPage(object sender, RoutedEventArgs e)
+    {
+        _page--;
+        await Run(LoadPlayersAsync);
+    }
+
+    private async void OnNextPage(object sender, RoutedEventArgs e)
+    {
+        _page++;
+        await Run(LoadPlayersAsync);
+    }
+
+    private async void OnPlayerSelected(object sender, SelectionChangedEventArgs e)
+    {
+        if (PlayersList.SelectedItem is not PlayerRow row || row.Nick == _player?.Nick) return;
+        await Run(() => OpenPlayerAsync(row.Nick));
+    }
+
+    private async Task OpenPlayerAsync(string nick)
+    {
         _player = await _api.GetPlayerAsync(nick);
         ShowPlayer();
+    }
+
+    /// <summary>После действия над игроком — обновить карточку и отметки в списке.</summary>
+    private async Task RefreshPlayerAsync()
+    {
+        if (_player == null) return;
+        await OpenPlayerAsync(_player.Nick);
+        await LoadPlayersAsync();
     }
 
     private void ShowPlayer()
@@ -117,9 +176,11 @@ public partial class ModerationWindow : Window
         if (_player is not { } p)
         {
             PlayerCard.Visibility = Visibility.Collapsed;
+            PlayerHint.Visibility = Visibility.Visible;
             return;
         }
         PlayerCard.Visibility = Visibility.Visible;
+        PlayerHint.Visibility = Visibility.Collapsed;
         PlayerName.Text = $"{p.Nick}  ·  звание {p.Rank}";
         PlayerInfo.Text = $"uid {p.Uid} · опыт {p.Experience:N0} · PvP {p.PvpRatingPoints:N0}" + (p.Clan != null ? $" · клан {p.Clan}" : "")
                           + $"\nВарбаксы {p.Money.Game:N0} · кредиты {p.Money.Cry:N0} · короны {p.Money.Crown:N0} · предметов {p.Items}";
@@ -141,7 +202,7 @@ public partial class ModerationWindow : Window
     {
         if (_player == null || !Confirm($"Кикнуть {_player.Nick} с сервера?")) return;
         Status(await _api.KickAsync(_player.Nick));
-        await FindPlayerAsync();
+        await RefreshPlayerAsync();
     });
 
     private async void OnBan(object sender, RoutedEventArgs e) => await Run(async () =>
@@ -168,14 +229,14 @@ public partial class ModerationWindow : Window
         if (!Confirm($"Забанить {_player.Nick} {term}?\nПричина: {reason}")) return;
         Status(await _api.BanAsync(_player.Nick, hours, reason));
         BanReasonBox.Text = "";
-        await FindPlayerAsync();
+        await RefreshPlayerAsync();
     });
 
     private async void OnUnban(object sender, RoutedEventArgs e) => await Run(async () =>
     {
         if (_player == null || !Confirm($"Снять бан с {_player.Nick}?")) return;
         Status(await _api.UnbanAsync(_player.Nick));
-        await FindPlayerAsync();
+        await RefreshPlayerAsync();
     });
 
     // --- Баны ---

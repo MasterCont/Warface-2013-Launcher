@@ -67,6 +67,16 @@ public record BanInfo(int Id, string Uid, string? Nick, string Reason, DateTime?
 
 public record PlayerOnline(string Channel, int? RoomId, bool InMatch);
 
+/// <summary>Строка списка игроков: отметки «в сети» и «бан».</summary>
+public record PlayerRow(long Id, string Nick, int Rank, long Experience, string? Clan, string Uid, PlayerOnline? Online, bool Banned)
+{
+    public string Marks => string.Join("  ", new[] { Online != null ? "● в сети" : null, Banned ? "бан" : null }.Where(m => m != null));
+
+    public System.Windows.Media.Brush MarksBrush => (System.Windows.Media.Brush)System.Windows.Application.Current.Resources[Banned ? "ErrorBrush" : "OnlineBrush"];
+}
+
+public record PlayersPage(PlayerRow[] Players, int Page, int Pages, int Total);
+
 public record PlayerDetails(long Id, string Nick, int Rank, long Experience, string? Clan, long PvpRatingPoints, string Uid,
     MoneyInfo Money, int Items, PlayerOnline? Online, BanInfo[] Bans);
 
@@ -161,6 +171,9 @@ public class ApiClient
     // --- Модерация (нужна сессия модератора или админа в StaffSession) ---
 
     public Task<OnlineData> GetOnlineAsync() => SendAsync<OnlineData>(HttpMethod.Get, "/v1/mod/online");
+
+    public Task<PlayersPage> GetPlayersAsync(string search, int page) =>
+        SendAsync<PlayersPage>(HttpMethod.Get, $"/v1/mod/players?page={page}&search={Uri.EscapeDataString(search)}");
 
     public Task<PlayerDetails> GetPlayerAsync(string nick) => SendAsync<PlayerDetails>(HttpMethod.Get, "/v1/mod/players/" + Uri.EscapeDataString(nick));
 

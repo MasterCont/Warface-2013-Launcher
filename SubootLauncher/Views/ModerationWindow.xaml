@@ -1,7 +1,7 @@
 <Window x:Class="SubootLauncher.Views.ModerationWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Модерация — Suboot Games" Width="900" Height="600" MinWidth="760" MinHeight="480"
+        Title="Модерация — Suboot Games" Width="960" Height="600" MinWidth="760" MinHeight="480"
         WindowStartupLocation="CenterOwner"
         Background="{StaticResource LobbyBackground}">
     <Window.Resources>
@@ -83,47 +83,81 @@
                     </ListBox>
                 </DockPanel>
 
-                <!-- Игрок -->
-                <ScrollViewer x:Name="PagePlayer" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
-                    <StackPanel>
-                        <DockPanel Margin="0,0,0,10">
-                            <Button DockPanel.Dock="Right" Content="Найти" Style="{StaticResource TileButton}" Margin="8,0,0,0" Click="OnFindPlayer" IsDefault="True"/>
-                            <TextBox x:Name="NickBox" ToolTip="Ник игрока"/>
+                <!-- Игрок: слева список всех игроков по 10 на страницу, справа карточка выбранного -->
+                <Grid x:Name="PagePlayer" Visibility="Collapsed">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="330"/>
+                        <ColumnDefinition Width="18"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <DockPanel Grid.Column="0">
+                        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                            <Button DockPanel.Dock="Right" Content="Найти" Style="{StaticResource TileButton}" Margin="8,0,0,0" Click="OnSearchPlayers"/>
+                            <TextBox x:Name="NickBox" ToolTip="Часть ника; пусто — все игроки" KeyDown="OnNickKey"/>
                         </DockPanel>
-                        <StackPanel x:Name="PlayerCard" Visibility="Collapsed">
-                            <TextBlock x:Name="PlayerName" Style="{StaticResource Title}"/>
-                            <TextBlock x:Name="PlayerInfo" TextWrapping="Wrap" Margin="0,4,0,0"/>
-                            <TextBlock x:Name="PlayerOnline" Margin="0,4,0,0"/>
+                        <DockPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
+                            <Button x:Name="PrevPage" DockPanel.Dock="Left" Content="‹" Width="40" Style="{StaticResource TileButton}" Click="OnPrevPage"/>
+                            <Button x:Name="NextPage" DockPanel.Dock="Right" Content="›" Width="40" Style="{StaticResource TileButton}" Click="OnNextPage"/>
+                            <TextBlock x:Name="PageText" Style="{StaticResource Muted}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </DockPanel>
+                        <ListBox x:Name="PlayersList" Style="{StaticResource Rows}" SelectionChanged="OnPlayerSelected">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="34"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="{Binding Rank}" Foreground="{StaticResource YellowBrush}" FontWeight="Bold"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding Nick}" Foreground="#FFF2F2F2" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding Marks}" Foreground="{Binding MarksBrush}" Margin="8,0,0,0"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </DockPanel>
 
-                            <TextBlock Text="Сообщение игроку" Style="{StaticResource Field}"/>
-                            <DockPanel>
-                                <Button DockPanel.Dock="Right" Content="Отправить" Style="{StaticResource TileButton}" Margin="8,0,0,0" Click="OnMessage"/>
-                                <TextBox x:Name="PlayerMessageText"/>
-                            </DockPanel>
+                    <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <TextBlock x:Name="PlayerHint" Style="{StaticResource Muted}" TextWrapping="Wrap"
+                                       Text="Выберите игрока в списке слева."/>
+                            <StackPanel x:Name="PlayerCard" Visibility="Collapsed">
+                                <TextBlock x:Name="PlayerName" Style="{StaticResource Title}"/>
+                                <TextBlock x:Name="PlayerInfo" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                <TextBlock x:Name="PlayerOnline" Margin="0,4,0,0"/>
 
-                            <TextBlock Text="Бан: срок в часах (пусто — бессрочно, только админ) и причина" Style="{StaticResource Field}"/>
-                            <DockPanel>
-                                <Button DockPanel.Dock="Right" Content="Забанить" Style="{StaticResource TileButton}" Margin="8,0,0,0" Click="OnBan"/>
-                                <TextBox x:Name="BanHoursBox" DockPanel.Dock="Left" Width="70" Margin="0,0,8,0" Text="24"/>
-                                <TextBox x:Name="BanReasonBox"/>
-                            </DockPanel>
+                                <TextBlock Text="Сообщение игроку" Style="{StaticResource Field}"/>
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Content="Отправить" Style="{StaticResource TileButton}" Margin="8,0,0,0" Click="OnMessage"/>
+                                    <TextBox x:Name="PlayerMessageText"/>
+                                </DockPanel>
 
-                            <WrapPanel Margin="0,10,0,0">
-                                <Button Content="Кикнуть" Style="{StaticResource TileButton}" Margin="0,0,6,0" Click="OnKick"/>
-                                <Button Content="Снять бан" Style="{StaticResource TileButton}" Click="OnUnban"/>
-                            </WrapPanel>
+                                <TextBlock Text="Бан: срок в часах (пусто — бессрочно, только админ) и причина" Style="{StaticResource Field}"/>
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Content="Забанить" Style="{StaticResource TileButton}" Margin="8,0,0,0" Click="OnBan"/>
+                                    <TextBox x:Name="BanHoursBox" DockPanel.Dock="Left" Width="70" Margin="0,0,8,0" Text="24"/>
+                                    <TextBox x:Name="BanReasonBox"/>
+                                </DockPanel>
 
-                            <TextBlock Text="История банов" Style="{StaticResource Field}"/>
-                            <ItemsControl x:Name="PlayerBans">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding Summary}" TextWrapping="Wrap" Margin="0,2"/>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
+                                <WrapPanel Margin="0,10,0,0">
+                                    <Button Content="Кикнуть" Style="{StaticResource TileButton}" Margin="0,0,6,0" Click="OnKick"/>
+                                    <Button Content="Снять бан" Style="{StaticResource TileButton}" Click="OnUnban"/>
+                                </WrapPanel>
+
+                                <TextBlock Text="История банов" Style="{StaticResource Field}"/>
+                                <ItemsControl x:Name="PlayerBans">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Summary}" TextWrapping="Wrap" Margin="0,2"/>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
                         </StackPanel>
-                    </StackPanel>
-                </ScrollViewer>
+                    </ScrollViewer>
+                </Grid>
 
                 <!-- Баны -->
                 <DockPanel x:Name="PageBans" Visibility="Collapsed">

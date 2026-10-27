@@ -9,6 +9,12 @@
         <AssemblyName>SubootLauncher</AssemblyName>
         <Product>Suboot Games Launcher</Product>
         <Version>0.1.0</Version>
+        <ApplicationIcon>Assets\suboot.ico</ApplicationIcon>
     </PropertyGroup>
+
+    <ItemGroup>
+        <!-- Иконка и в exe, и в окнах (Window.Icon берётся из ресурса) -->
+        <Resource Include="Assets\suboot.ico"/>
+    </ItemGroup>
 
 </Project>
