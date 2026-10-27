@@ -1,0 +1,44 @@
+<Window x:Class="SubootLauncher.Views.LoginWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Suboot Games — Warface 2013" Width="460" SizeToContent="Height"
+        WindowStartupLocation="CenterScreen" ResizeMode="NoResize"
+        Background="{StaticResource LobbyBackground}">
+    <StackPanel Margin="28">
+        <TextBlock Text="WARFACE 2013" FontSize="34" FontWeight="Bold" FontStyle="Italic" Foreground="#FFE9EBEE"/>
+        <TextBlock Text="Частный сервер · Suboot Games" Style="{StaticResource Muted}" Margin="0,0,0,18"/>
+
+        <!-- Вкладки «Вход / Регистрация» — жёлтые полосы, как вкладки классов в игре -->
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+            <RadioButton x:Name="LoginTab" Content="Вход" Style="{StaticResource TabToggle}" IsChecked="True" Checked="OnModeChanged"/>
+            <RadioButton x:Name="RegisterTab" Content="Регистрация" Style="{StaticResource TabToggle}" Checked="OnModeChanged"/>
+        </StackPanel>
+
+        <Border Style="{StaticResource Panel}">
+            <StackPanel>
+                <StackPanel x:Name="InvitePanel" Visibility="Collapsed" Margin="0,0,0,10">
+                    <TextBlock Text="Ключ приглашения" Style="{StaticResource Muted}"/>
+                    <TextBox x:Name="InviteBox" Margin="0,3,0,0"/>
+                    <TextBlock Text="Сервер частный: ключ выдаёт администратор" Style="{StaticResource Muted}" Margin="0,3,0,0"/>
+                </StackPanel>
+
+                <TextBlock Text="Логин" Style="{StaticResource Muted}"/>
+                <TextBox x:Name="LoginBox" Margin="0,3,0,10"/>
+
+                <TextBlock Text="Пароль" Style="{StaticResource Muted}"/>
+                <PasswordBox x:Name="PasswordBox" Margin="0,3,0,10"/>
+
+                <StackPanel x:Name="RepeatPanel" Visibility="Collapsed">
+                    <TextBlock Text="Повторите пароль" Style="{StaticResource Muted}"/>
+                    <PasswordBox x:Name="RepeatBox" Margin="0,3,0,10"/>
+                </StackPanel>
+
+                <CheckBox x:Name="RememberBox" Content="Запомнить меня на этом компьютере" IsChecked="True" Margin="0,0,0,14"/>
+
+                <TextBlock x:Name="ErrorText" Foreground="{StaticResource ErrorBrush}" TextWrapping="Wrap" Visibility="Collapsed" Margin="0,0,0,10"/>
+
+                <Button x:Name="SubmitButton" Content="Войти" Style="{StaticResource YellowButton}" HorizontalAlignment="Left" IsDefault="True" Click="OnSubmit"/>
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</Window>
