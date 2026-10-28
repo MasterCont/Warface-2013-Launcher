@@ -156,6 +156,18 @@ public record GameItem(string Name, string Group, string Category, string Classe
 
 public record ItemsPage(GameItem[] Items, int Page, int Pages, int Total);
 
+/// <summary>Достижение игры с прогрессом игрока.</summary>
+public record PlayerAchievement(int Id, string Kind, long Amount, string Name, string BannerType, string BannerImage,
+    long Progress, bool Completed, long? CompletionTime)
+{
+    public string Title => $"#{Id}  {Name}";
+
+    public string Details => $"{AchievementNames.Kind(Kind)} · {AchievementNames.Banner(BannerType)} · "
+        + (Completed
+            ? "выполнено" + (CompletionTime is > 0 and var t ? " " + DateTimeOffset.FromUnixTimeSeconds(t).LocalDateTime.ToString("dd.MM.yyyy") : "")
+            : $"{Progress:N0} / {Amount:N0}");
+}
+
 /// <summary>Ошибка API с понятным игроку текстом.</summary>
 public class ApiException(string message, int code) : Exception(message)
 {
@@ -303,6 +315,13 @@ public class ApiClient
 
     public Task<string> ResetOfferAsync(int id) => SendForReasonAsync(HttpMethod.Post, $"/v1/admin/shop/{id}/reset");
 
+    public Task<PlayerAchievement[]> GetAchievementsAsync(string nick) =>
+        SendAsync<PlayerAchievement[]>(HttpMethod.Get, PlayerPath(nick) + "/achievements");
+
+    /// <summary>{ achievements = [{ id, completed } | { id, progress }] } или { all = true | false }.</summary>
+    public Task<string> SetAchievementsAsync(string nick, object change) =>
+        SendForReasonAsync(HttpMethod.Patch, PlayerPath(nick) + "/achievements", change);
+
     public Task<ItemsPage> GetItemsAsync(string search, string? group, int page) =>
         SendAsync<ItemsPage>(HttpMethod.Get, $"/v1/admin/items?page={page}&search={Uri.EscapeDataString(search)}" + (group != null ? "&group=" + group : ""));
 
@@ -326,6 +345,8 @@ public class ApiClient
         ["Offer is on sale again"] = "Снова в продаже",
         ["Offer restored to original"] = "Возвращены исходные значения",
         ["Added offer deleted"] = "Добавленное предложение удалено",
+        ["Achievements updated"] = "Достижения изменены",
+        ["Achievements unchanged"] = "Ничего не изменилось",
         ["Queued, the player will receive it within ~10 seconds"] = "Выдано: игрок получит в течение ~10 с",
         ["Queued, the player will receive it at next login"] = "Выдано: игрок получит при следующем входе",
     };
@@ -391,6 +412,8 @@ public class ApiClient
         _ when reason.EndsWith(" is not a rental item") => "Это не арендованный предмет",
         _ when reason.EndsWith(" is not a consumable") => "Это не расходный предмет",
         _ when reason.StartsWith("Unknown item '") => "Такого предмета нет в игре",
+        _ when reason.StartsWith("Achievement ") && reason.EndsWith(" not found") => "Такого достижения нет",
+        _ when reason.StartsWith("progress of achievement ") => "Прогресс: целое число от 0 до " + reason[(reason.LastIndexOf(' ') + 1)..],
         _ when reason.StartsWith("Invalid fields: ") => "Неверные значения: " + reason[16..],
         _ when reason.StartsWith("Offer ") && reason.EndsWith(" not found") => "Предложение не найдено",
         _ when reason.EndsWith(" is not hidden") => "Предложение и так в продаже",

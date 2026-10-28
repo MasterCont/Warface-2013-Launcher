@@ -128,7 +128,8 @@
                                     <TextBlock x:Name="ExpHint" Style="{StaticResource Muted}" Margin="0,4,0,0"/>
                                     <WrapPanel Margin="0,8,0,0">
                                         <Button Content="Сохранить" Style="{StaticResource TileButton}" Margin="0,0,6,0" Click="OnSaveProfile"/>
-                                        <Button Content="Склад…" Style="{StaticResource TileButton}" Click="OnStorage"/>
+                                        <Button Content="Склад…" Style="{StaticResource TileButton}" Margin="0,0,6,0" Click="OnStorage"/>
+                                        <Button Content="Достижения…" Style="{StaticResource TileButton}" Click="OnAchievements"/>
                                     </WrapPanel>
                                 </StackPanel>
 

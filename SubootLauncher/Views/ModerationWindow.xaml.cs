@@ -286,6 +286,12 @@ public partial class ModerationWindow : Window
         await RefreshPlayerAsync();
     });
 
+    private void OnAchievements(object sender, RoutedEventArgs e)
+    {
+        if (_player == null) return;
+        new AchievementsWindow(_api, _player.Nick) { Owner = this }.Show();
+    }
+
     private void OnStorage(object sender, RoutedEventArgs e)
     {
         if (_player == null) return;
