@@ -1,0 +1,64 @@
+<UserControl x:Class="SubootLauncher.Views.ComplaintsPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Жалобы: слева список (по 10), справа выбранная жалоба и её разбор -->
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="18"/>
+            <ColumnDefinition Width="320"/>
+        </Grid.ColumnDefinitions>
+
+        <DockPanel Grid.Column="0">
+            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                <Button DockPanel.Dock="Right" Content="Обновить" Style="{StaticResource TileButton}" Margin="8,0,0,0" Click="OnRefresh"/>
+                <ComboBox x:Name="StatusBox" Width="170" HorizontalAlignment="Left" SelectionChanged="OnFilterChanged"/>
+            </DockPanel>
+            <DockPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
+                <Button x:Name="PrevPage" DockPanel.Dock="Left" Content="‹" Width="40" Style="{StaticResource TileButton}" Click="OnPrevPage"/>
+                <Button x:Name="NextPage" DockPanel.Dock="Left" Content="›" Width="40" Style="{StaticResource TileButton}" Margin="4,0,0,0" Click="OnNextPage"/>
+                <TextBlock x:Name="PageText" Style="{StaticResource Muted}" VerticalAlignment="Center" Margin="10,0"/>
+            </DockPanel>
+            <ListBox x:Name="ComplaintsList" Style="{StaticResource Rows}" SelectionChanged="OnSelected">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel>
+                            <TextBlock Text="{Binding Who}" Foreground="#FFF2F2F2" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Text="{Binding Preview}" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock x:Name="HeaderText" Text="{Binding Header}" Style="{StaticResource Muted}"/>
+                        </StackPanel>
+                        <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding Status}" Value="new">
+                                <Setter TargetName="HeaderText" Property="Foreground" Value="{StaticResource YellowBrush}"/>
+                            </DataTrigger>
+                        </DataTemplate.Triggers>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </DockPanel>
+
+        <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <TextBlock x:Name="DetailTitle" Style="{StaticResource Title}" Text="Жалоба" TextWrapping="Wrap"/>
+                <TextBlock x:Name="DetailText" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,4,0,0"
+                           Text="Выберите жалобу в списке. Игроки отправляют их в игре: меню игрока → «Пожаловаться»."/>
+                <StackPanel x:Name="Actions" IsEnabled="False">
+                    <TextBlock x:Name="CommentText" TextWrapping="Wrap" Margin="0,10,0,0"/>
+                    <WrapPanel Margin="0,10,0,0">
+                        <Button x:Name="OpenTargetButton" Content="Открыть нарушителя" Style="{StaticResource TileButton}" Margin="0,0,6,6" Click="OnOpenTarget"/>
+                        <Button x:Name="OpenReporterButton" Content="Открыть автора" Style="{StaticResource TileButton}" Margin="0,0,6,6" Click="OnOpenReporter"/>
+                    </WrapPanel>
+                    <TextBlock Text="Заметка (что сделано)" Style="{StaticResource FieldLabel}"/>
+                    <TextBox x:Name="NoteBox" Height="64" TextWrapping="Wrap" AcceptsReturn="True" VerticalContentAlignment="Top" MaxLength="500"/>
+                    <WrapPanel Margin="0,10,0,0">
+                        <Button Content="В работу" Style="{StaticResource TileButton}" Margin="0,0,6,6" Tag="in_progress" Click="OnSetStatus"/>
+                        <Button Content="Решена" Style="{StaticResource YellowButton}" Margin="0,0,6,6" Tag="resolved" Click="OnSetStatus"/>
+                        <Button Content="Отклонить" Style="{StaticResource TileButton}" Margin="0,0,6,6" Tag="rejected" Click="OnSetStatus"/>
+                        <Button Content="Снова новая" Style="{StaticResource TileButton}" Margin="0,0,6,6" Tag="new" Click="OnSetStatus"/>
+                    </WrapPanel>
+                    <TextBlock x:Name="HandledText" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

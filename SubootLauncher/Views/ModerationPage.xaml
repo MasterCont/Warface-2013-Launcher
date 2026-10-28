@@ -19,11 +19,13 @@
         <WrapPanel Grid.Row="0" Margin="0,0,0,12">
             <RadioButton x:Name="TabOnline" Content="Онлайн" Style="{StaticResource TabToggle}" IsChecked="True" Checked="OnTab"/>
             <RadioButton x:Name="TabPlayer" Content="Игрок" Style="{StaticResource TabToggle}" Checked="OnTab"/>
+            <RadioButton x:Name="TabComplaints" Content="Жалобы" Style="{StaticResource TabToggle}" Checked="OnTab"/>
             <RadioButton x:Name="TabBans" Content="Баны" Style="{StaticResource TabToggle}" Checked="OnTab"/>
             <RadioButton x:Name="TabBroadcast" Content="Рассылка" Style="{StaticResource TabToggle}" Checked="OnTab"/>
             <RadioButton x:Name="TabInvites" Content="Ключи" Style="{StaticResource TabToggle}" Checked="OnTab"/>
             <RadioButton x:Name="TabAccounts" Content="Аккаунты" Style="{StaticResource TabToggle}" Checked="OnTab"/>
             <RadioButton x:Name="TabShop" Content="Магазин" Style="{StaticResource TabToggle}" Checked="OnTab"/>
+            <RadioButton x:Name="TabAudit" Content="Журнал" Style="{StaticResource TabToggle}" Checked="OnTab"/>
         </WrapPanel>
 
         <Border Grid.Row="1" Style="{StaticResource Panel}">
@@ -229,6 +231,10 @@
 
                 <!-- Магазин (админ) -->
                 <views:ShopPanel x:Name="PageShop" Visibility="Collapsed"/>
+
+                <!-- Жалобы игроков (модератор) и журнал аудита (админ) -->
+                <views:ComplaintsPanel x:Name="PageComplaints" Visibility="Collapsed"/>
+                <views:AuditPanel x:Name="PageAudit" Visibility="Collapsed"/>
 
                 <!-- Аккаунты (админ) -->
                 <DockPanel x:Name="PageAccounts" Visibility="Collapsed">

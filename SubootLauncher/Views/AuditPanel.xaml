@@ -1,0 +1,49 @@
+<UserControl x:Class="SubootLauncher.Views.AuditPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Журнал аудита: все изменяющие запросы к API (кто, откуда, что, результат), новые сверху -->
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="18"/>
+            <ColumnDefinition Width="320"/>
+        </Grid.ColumnDefinitions>
+
+        <DockPanel Grid.Column="0">
+            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                <Button DockPanel.Dock="Right" Content="Найти" Style="{StaticResource TileButton}" Margin="8,0,0,0" Click="OnSearch"/>
+                <CheckBox x:Name="ErrorsBox" DockPanel.Dock="Right" Content="только ошибки" VerticalAlignment="Center" Margin="10,0,0,0" Click="OnSearch"/>
+                <TextBox x:Name="SearchBox" ToolTip="Подстрока в пути, имени ключа или аккаунта, IP или ответе: ban, mastercont, shop…" PreviewKeyDown="OnSearchKey"/>
+            </DockPanel>
+            <DockPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
+                <Button x:Name="MoreButton" DockPanel.Dock="Left" Content="Ещё (раньше)" Style="{StaticResource TileButton}" Click="OnMore"/>
+                <TextBlock x:Name="CountText" Style="{StaticResource Muted}" VerticalAlignment="Center" Margin="10,0"/>
+            </DockPanel>
+            <ListBox x:Name="EntriesList" Style="{StaticResource Rows}" VirtualizingPanel.IsVirtualizing="True" SelectionChanged="OnSelected">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel>
+                            <TextBlock x:Name="LineText" Text="{Binding Line}" Foreground="#FFF2F2F2" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Text="{Binding Header}" Style="{StaticResource Muted}" TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+                        <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding Failed}" Value="True">
+                                <Setter TargetName="LineText" Property="Foreground" Value="{StaticResource ErrorBrush}"/>
+                            </DataTrigger>
+                        </DataTemplate.Triggers>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </DockPanel>
+
+        <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+            <StackPanel>
+                <TextBlock x:Name="DetailTitle" Style="{StaticResource Title}" Text="Запись"/>
+                <TextBlock x:Name="DetailText" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,4,0,0"
+                           Text="Выберите запись. Пароли, ключи и сессии в журнале скрыты (***). Записи старше 12 месяцев удаляются при резервном копировании."/>
+                <TextBox x:Name="BodyText" Margin="0,10,0,0" IsReadOnly="True" FontFamily="Consolas" FontSize="12"
+                         TextWrapping="NoWrap" Visibility="Collapsed"/>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

@@ -168,6 +168,67 @@ public record PlayerAchievement(int Id, string Kind, long Amount, string Name, s
             : $"{Progress:N0} / {Amount:N0}");
 }
 
+// --- Жалобы и журнал аудита ---
+
+/// <summary>Жалоба игрока из игры (меню игрока → «Пожаловаться»).</summary>
+public record Complaint(long Id, DateTime CreatedAt, string Source, string? ReporterUid, string? ReporterNick,
+    string? TargetUid, string TargetNick, string Type, string? Comment, string? Channel, int? RoomId,
+    string Status, string? Note, string? HandledBy, DateTime? HandledAt)
+{
+    public static readonly Dictionary<string, string> Types = new()
+    {
+        ["speed_bot"] = "спидхак",
+        ["aim_bot"] = "аимбот",
+        ["perspective_hacking"] = "волхак (видит сквозь стены)",
+        ["verbal_abuse"] = "оскорбления",
+        ["master_does_not_start_room"] = "мастер не запускает комнату",
+        ["other"] = "другое",
+    };
+
+    public static readonly (string? Id, string Title)[] Statuses =
+    [
+        ("new", "Новые"),
+        ("in_progress", "В работе"),
+        ("resolved", "Решённые"),
+        ("rejected", "Отклонённые"),
+        (null, "Все"),
+    ];
+
+    public string TypeTitle => Types.GetValueOrDefault(Type, Type);
+
+    public string StatusTitle => Status switch
+    {
+        "new" => "новая",
+        "in_progress" => "в работе",
+        "resolved" => "решена",
+        "rejected" => "отклонена",
+        _ => Status,
+    };
+
+    public string Header => $"#{Id} · {CreatedAt.ToLocalTime():dd.MM.yyyy HH:mm} · {StatusTitle}";
+
+    public string Who => $"{ReporterNick ?? "?"} → {TargetNick}";
+
+    public string Preview => TypeTitle + (string.IsNullOrWhiteSpace(Comment) ? "" : " · " + (Comment!.Length > 70 ? Comment[..70] + "…" : Comment));
+}
+
+public record ComplaintsPage(Complaint[] Complaints, int Page, int Pages, int Total, Dictionary<string, int> Counts);
+
+/// <summary>Запись журнала аудита: кто, откуда, что изменил и чем ответил сервер.</summary>
+public record AuditEntry(long Id, DateTime At, int? KeyId, string? KeyName, string Role, string? Ip,
+    string Method, string Path, JsonElement? Body, int Code, string? Reason)
+{
+    public string Header => $"{At.ToLocalTime():dd.MM.yyyy HH:mm:ss} · {KeyName ?? "без ключа"} ({Role})" + (Ip != null ? " · " + Ip : "");
+
+    public string Line => $"{Method} {Uri.UnescapeDataString(Path)} → {Code}" + (string.IsNullOrEmpty(Reason) ? "" : " " + Reason);
+
+    public bool Failed => Code >= 400;
+
+    public string BodyText => Body is { ValueKind: JsonValueKind.Object } body && body.EnumerateObject().Any()
+        ? JsonSerializer.Serialize(body, new JsonSerializerOptions { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping })
+        : "(без тела)";
+}
+
 /// <summary>Ошибка API с понятным игроку текстом.</summary>
 public class ApiException(string message, int code) : Exception(message)
 {
@@ -328,6 +389,19 @@ public class ApiClient
     public Task<string> SetAchievementsAsync(string nick, object change) =>
         SendForReasonAsync(HttpMethod.Patch, PlayerPath(nick) + "/achievements", change);
 
+    // --- Жалобы (модератор) и журнал аудита (админ) ---
+
+    public Task<ComplaintsPage> GetComplaintsAsync(string? status, string? target, int page) =>
+        SendAsync<ComplaintsPage>(HttpMethod.Get, $"/v1/mod/complaints?page={page}"
+            + (status != null ? "&status=" + status : "") + (target != null ? "&target=" + Uri.EscapeDataString(target) : ""));
+
+    public Task<string> UpdateComplaintAsync(long id, string? status, string? note) =>
+        SendForReasonAsync(HttpMethod.Patch, "/v1/mod/complaints/" + id, new { status, note });
+
+    public Task<AuditEntry[]> GetAuditAsync(long? before, string search, bool errorsOnly) =>
+        SendAsync<AuditEntry[]>(HttpMethod.Get, "/v1/admin/audit?limit=50" + (before != null ? "&before=" + before : "")
+            + (search != "" ? "&search=" + Uri.EscapeDataString(search) : "") + (errorsOnly ? "&errors=1" : ""));
+
     public Task<ItemsPage> GetItemsAsync(string search, string? group, int page) =>
         SendAsync<ItemsPage>(HttpMethod.Get, $"/v1/admin/items?page={page}&search={Uri.EscapeDataString(search)}" + (group != null ? "&group=" + group : ""));
 
@@ -338,6 +412,7 @@ public class ApiClient
         ["Player is offline, message will be shown at next login"] = "Игрок не в сети: сообщение покажется при входе",
         ["Player kicked"] = "Игрок исключён с сервера",
         ["Nickname changed"] = "Ник изменён",
+        ["Complaint updated"] = "Жалоба обновлена",
         ["Player banned permanently"] = "Игрок заблокирован бессрочно",
         ["Ban revoked"] = "Бан снят",
         ["Invite revoked"] = "Ключ отозван",
@@ -422,6 +497,7 @@ public class ApiClient
         _ when reason.EndsWith("' has no active ban") => "У игрока " + reason[8..^19] + " нет активного бана",
         _ when reason.StartsWith("Moderators can ban for at most") => "Модератор может банить максимум на " + reason[31..].Replace(" hours", " ч"),
         _ when reason.StartsWith("Role '") => "Недостаточно прав для этого действия",
+        _ when reason.StartsWith("Complaint ") && reason.EndsWith(" not found") => "Жалоба не найдена",
         "Player already has this nickname" => "У игрока уже этот ник",
         _ when reason.StartsWith("Nickname must be") => "Ник: 4–16 символов, только кириллица или только латиница, цифры и - . _",
         _ when reason.StartsWith("Nickname '") && reason.EndsWith("' is already taken") => "Ник " + reason[10..^18] + " уже занят",

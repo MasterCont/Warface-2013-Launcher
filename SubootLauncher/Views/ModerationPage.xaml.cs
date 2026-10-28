@@ -35,12 +35,17 @@ public partial class ModerationPage : UserControl, IReturnAware
         TabAccounts.Visibility = _isAdmin ? Visibility.Visible : Visibility.Collapsed;
         TabShop.Visibility = _isAdmin ? Visibility.Visible : Visibility.Collapsed;
         PageShop.Init(_api, Status);
+        TabAudit.Visibility = _isAdmin ? Visibility.Visible : Visibility.Collapsed;
+        PageAudit.Init(_api, Status);
+        PageComplaints.Init(_api, Status, OpenPlayerFromElsewhere);
+        PageComplaints.NewCountChanged += count => TabComplaints.Content = count > 0 ? $"Жалобы ({count})" : "Жалобы";
         // Loaded срабатывает и при возврате со склада или достижений — онлайн загружаем один раз
         Loaded += async (_, _) =>
         {
             if (_onlineLoaded) return;
             _onlineLoaded = true;
             await Run(LoadOnlineAsync);
+            await Run(PageComplaints.LoadCountAsync); // счётчик новых жалоб на вкладке
         };
     }
 
@@ -58,6 +63,8 @@ public partial class ModerationPage : UserControl, IReturnAware
             (TabInvites, PageInvites, LoadInvitesAsync),
             (TabAccounts, PageAccounts, LoadAccountsAsync),
             (TabShop, PageShop, PageShop.LoadOnceAsync),
+            (TabComplaints, PageComplaints, PageComplaints.LoadOnceAsync),
+            (TabAudit, PageAudit, PageAudit.LoadOnceAsync),
         };
         foreach (var (tab, page, load) in pages)
         {
@@ -110,18 +117,23 @@ public partial class ModerationPage : UserControl, IReturnAware
 
     private async void OnRefreshOnline(object sender, RoutedEventArgs e) => await Run(LoadOnlineAsync);
 
-    private async void OnOnlineOpen(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    private void OnOnlineOpen(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
-        if (OnlineList.SelectedItem is not OnlinePlayer player) return;
-        NickBox.Text = player.Nick;
-        _search = player.Nick;
+        if (OnlineList.SelectedItem is OnlinePlayer player) OpenPlayerFromElsewhere(player.Nick);
+    }
+
+    /// <summary>Открыть карточку игрока из другой вкладки (онлайн, жалобы).</summary>
+    private async void OpenPlayerFromElsewhere(string nick)
+    {
+        NickBox.Text = nick;
+        _search = nick;
         _page = 1;
         _playersLoaded = true; // список загрузим сами, вкладка не должна перезагружать его
         TabPlayer.IsChecked = true;
         await Run(async () =>
         {
             await LoadPlayersAsync();
-            await OpenPlayerAsync(player.Nick);
+            await OpenPlayerAsync(nick);
         });
     }
 
