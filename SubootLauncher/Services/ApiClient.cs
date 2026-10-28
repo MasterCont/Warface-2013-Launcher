@@ -139,7 +139,7 @@ public record StorageItem(int Id, string Name, string Group, string Category, st
     DurabilityInfo? Durability, long? ExpiresAt, long? SecondsLeft, int? Quantity, long? BoughtAt,
     [property: JsonPropertyName("title")] string? RuTitle = null)
 {
-    public string Title => ItemNames.Title(Name, Category, RuTitle);
+    [JsonIgnore] public string Title => ItemNames.Title(Name, Category, RuTitle);
 
     public string State => Kind switch
     {
@@ -157,7 +157,7 @@ public record ShopOffer(int Id, string ItemName, string Group, string Category, 
     string State, ShopOffer? Original, string? UpdatedBy, string? UpdatedAt,
     [property: JsonPropertyName("title")] string? RuTitle = null)
 {
-    public string Title => ItemNames.Title(ItemName, Category, RuTitle);
+    [JsonIgnore] public string Title => ItemNames.Title(ItemName, Category, RuTitle);
 
     public string Price => string.Join(" + ", new[]
     {
@@ -182,7 +182,7 @@ public record ShopPage(ShopOffer[] Offers, int Page, int Pages, int Total, strin
 public record GameItem(string Name, string Group, string Category, string Classes,
     [property: JsonPropertyName("title")] string? RuTitle = null)
 {
-    public string Title => ItemNames.Title(Name, Category, RuTitle);
+    [JsonIgnore] public string Title => ItemNames.Title(Name, Category, RuTitle);
     public string Caption => string.IsNullOrEmpty(RuTitle) ? Name : RuTitle;
     public string GroupTitle => ItemNames.Group(Group);
     public string CategoryTitle => ItemNames.Category(Category);
@@ -195,7 +195,7 @@ public record PlayerAchievement(int Id, string Kind, long Amount, string Name, s
     long Progress, bool Completed, long? CompletionTime,
     [property: JsonPropertyName("title")] string? RuTitle = null, string? Description = null)
 {
-    public string Title => string.IsNullOrEmpty(RuTitle) ? $"#{Id}  {Name}" : $"#{Id}  {RuTitle}" + (string.IsNullOrEmpty(Description) ? "" : $" — {Description}");
+    [JsonIgnore] public string Title => string.IsNullOrEmpty(RuTitle) ? $"#{Id}  {Name}" : $"#{Id}  {RuTitle}" + (string.IsNullOrEmpty(Description) ? "" : $" — {Description}");
 
     public string Details => $"{AchievementNames.Kind(Kind)} · {AchievementNames.Banner(BannerType)} · "
         + (Completed
