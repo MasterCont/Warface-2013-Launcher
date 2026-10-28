@@ -138,6 +138,16 @@
                                         <Button Content="Склад…" Style="{StaticResource TileButton}" Margin="0,0,6,0" Click="OnStorage"/>
                                         <Button Content="Достижения…" Style="{StaticResource TileButton}" Click="OnAchievements"/>
                                     </WrapPanel>
+
+                                    <TextBlock Text="Доступ к PvE-миссиям" Style="{StaticResource Field}"/>
+                                    <WrapPanel>
+                                        <CheckBox x:Name="AccessTraining" Content="обучение" Margin="0,0,14,4"/>
+                                        <CheckBox x:Name="AccessEasy" Content="лёгкая" Margin="0,0,14,4"/>
+                                        <CheckBox x:Name="AccessNormal" Content="нормальная" Margin="0,0,14,4"/>
+                                        <CheckBox x:Name="AccessHard" Content="сложная" Margin="0,0,14,4"/>
+                                        <Button Content="Сохранить доступ" Style="{StaticResource TileButton}" Click="OnSaveMissionAccess"/>
+                                    </WrapPanel>
+                                    <TextBlock x:Name="AccessHint" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,4,0,0"/>
                                 </StackPanel>
 
                                 <TextBlock Text="Сообщение игроку" Style="{StaticResource Field}"/>

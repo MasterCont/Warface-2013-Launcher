@@ -10,13 +10,16 @@ public static class GameLauncher
 
     public static bool IsGameFolder(string? gamePath) => gamePath != null && File.Exists(ExePath(gamePath));
 
-    /// <summary>Папка рядом с лаунчером, если лаунчер положили в папку игры.</summary>
+    /// <summary>
+    /// Папка игры, в которой лежит сам лаунчер (корень клиента или Bin32Release). Берётся папка exe:
+    /// у однофайловой сборки AppContext.BaseDirectory может указывать во временную папку распаковки.
+    /// </summary>
     public static string? Detect()
     {
-        var here = AppContext.BaseDirectory;
+        var here = Path.GetDirectoryName(Environment.ProcessPath) ?? AppContext.BaseDirectory;
         foreach (var candidate in new[] { here, Path.GetDirectoryName(here.TrimEnd('\\')) })
         {
-            if (IsGameFolder(candidate)) return candidate;
+            if (IsGameFolder(candidate)) return Path.GetFullPath(candidate!);
         }
         return null;
     }

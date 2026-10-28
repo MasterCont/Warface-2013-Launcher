@@ -44,7 +44,13 @@ public partial class HomePage : UserControl
         _session = session;
         _me = me;
 
-        App.Settings.GamePath ??= GameLauncher.Detect();
+        // Лаунчер лежит в папке клиента — играем этим клиентом сразу, без выбора папки
+        var detected = GameLauncher.Detect();
+        if (detected != null && !string.Equals(detected, App.Settings.GamePath, StringComparison.OrdinalIgnoreCase))
+        {
+            App.Settings.GamePath = detected;
+            App.Settings.Save();
+        }
         ShowAccount();
         ShowGamePath();
         _gameWatch.Tick += (_, _) => UpdatePlayButton();

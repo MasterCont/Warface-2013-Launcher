@@ -78,7 +78,7 @@ public record PlayerRow(long Id, string Nick, int Rank, long Experience, string?
 public record PlayersPage(PlayerRow[] Players, int Page, int Pages, int Total);
 
 public record PlayerDetails(long Id, string Nick, int Rank, long Experience, string? Clan, long PvpRatingPoints, string Uid,
-    MoneyInfo Money, int Items, PlayerOnline? Online, BanInfo[] Bans);
+    MoneyInfo Money, int Items, PlayerOnline? Online, BanInfo[] Bans, string[]? MissionsUnlocked = null, string[]? MissionsLocked = null);
 
 public record InviteUser(long Uid, string Login, DateTime At);
 
@@ -433,6 +433,10 @@ public class ApiClient
 
     public Task<string> ResetOfferAsync(int id) => SendForReasonAsync(HttpMethod.Post, $"/v1/admin/shop/{id}/reset");
 
+    /// <summary>Открыть (true) или закрыть (false) PvE-сложности: trainingmission, easymission, normalmission, hardmission.</summary>
+    public Task<string> SetMissionAccessAsync(string nick, Dictionary<string, bool> access) =>
+        SendForReasonAsync(HttpMethod.Patch, PlayerPath(nick) + "/missions", access);
+
     public Task<PlayerAchievement[]> GetAchievementsAsync(string nick) =>
         SendAsync<PlayerAchievement[]>(HttpMethod.Get, PlayerPath(nick) + "/achievements");
 
@@ -514,6 +518,7 @@ public class ApiClient
         ["Offer restored to original"] = "Возвращены исходные значения",
         ["Added offer deleted"] = "Добавленное предложение удалено",
         ["Achievements updated"] = "Достижения изменены",
+        ["Mission access updated"] = "Доступ к миссиям изменён",
         ["Achievements unchanged"] = "Ничего не изменилось",
         ["Queued, the player will receive it within ~10 seconds"] = "Выдано: игрок получит в течение ~10 с",
         ["Queued, the player will receive it at next login"] = "Выдано: игрок получит при следующем входе",

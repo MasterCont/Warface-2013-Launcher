@@ -225,6 +225,12 @@ public partial class ModerationPage : UserControl, IReturnAware
 
         RenameBox.Text = p.Nick;
         AdminProfilePanel.Visibility = _isAdmin ? Visibility.Visible : Visibility.Collapsed;
+        var unlocked = p.MissionsUnlocked ?? [];
+        var locked = p.MissionsLocked ?? [];
+        foreach (var (box, mission) in MissionAccessBoxes()) box.IsChecked = unlocked.Contains(mission);
+        AccessHint.Text = locked.Length > 0
+            ? "Закрыто администратором (прогрессия не откроет): " + string.Join(", ", locked.Select(MissionNames.Type))
+            : "Сложности открываются сами по прохождениям и званию; закрытую здесь прогрессия не откроет.";
         ExpBox.Text = p.Experience.ToString();
         GameMoneyBox.Text = p.Money.Game.ToString();
         CryMoneyBox.Text = p.Money.Cry.ToString();
@@ -344,6 +350,33 @@ public partial class ModerationPage : UserControl, IReturnAware
         if (_player == null) return;
         App.Shell.Navigate(new AchievementsPage(_api, _player.Nick), $"Достижения — {_player.Nick}");
     }
+
+    private (CheckBox Box, string Mission)[] MissionAccessBoxes() =>
+    [
+        (AccessTraining, "trainingmission"),
+        (AccessEasy, "easymission"),
+        (AccessNormal, "normalmission"),
+        (AccessHard, "hardmission"),
+    ];
+
+    private async void OnSaveMissionAccess(object sender, RoutedEventArgs e) => await Run(async () =>
+    {
+        if (_player == null) return;
+        var unlocked = _player.MissionsUnlocked ?? [];
+        // Отправляем только изменённые сложности
+        var changes = MissionAccessBoxes()
+            .Where(x => (x.Box.IsChecked == true) != unlocked.Contains(x.Mission))
+            .ToDictionary(x => x.Mission, x => x.Box.IsChecked == true);
+        if (changes.Count == 0)
+        {
+            Status("Доступ не изменился");
+            return;
+        }
+        var text = string.Join("\n", changes.Select(c => $"{MissionNames.Type(c.Key)}: {(c.Value ? "открыть" : "закрыть")}"));
+        if (!Confirm($"Изменить доступ {_player.Nick} к PvE?\n\n{text}")) return;
+        Status(await _api.SetMissionAccessAsync(_player.Nick, changes));
+        await RefreshPlayerAsync();
+    });
 
     private void OnStorage(object sender, RoutedEventArgs e)
     {
