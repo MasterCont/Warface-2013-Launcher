@@ -1,64 +1,82 @@
 @echo off
-rem Диагностика запуска SubootLauncher. Положите этот файл рядом с SubootLauncher.exe и запустите двойным щелчком.
-rem Отчёт появится на рабочем столе: suboot-diagnostics.txt. Пароли и сессии в отчёт не попадают.
-chcp 65001 >nul
-echo Собираю сведения о системе, это займёт около 20 секунд...
-powershell -NoProfile -ExecutionPolicy Bypass -Command "& { $here = '%~dp0'.TrimEnd('\'); $raw = [IO.File]::ReadAllText('%~f0', [Text.Encoding]::UTF8); $code = $raw.Substring($raw.LastIndexOf('#PS-BEGIN#') + 10); & ([ScriptBlock]::Create($code)) $here }"
+rem SubootLauncher diagnostics. Put this file next to SubootLauncher.exe and double-click it.
+rem Only built-in Windows commands (no PowerShell), ASCII only: nothing to block or misread.
+rem The report suboot-diagnostics.txt is written next to this file and opened in Notepad.
+setlocal
+set "HERE=%~dp0"
+set "OUT=%~dp0suboot-diagnostics.txt"
+echo SubootLauncher diagnostics. Please wait about 20 seconds...
+
+rem If the launcher folder is read-only, write the report to the user profile instead
+(echo test) > "%OUT%" 2>nul || set "OUT=%USERPROFILE%\suboot-diagnostics.txt"
+
+echo == Date > "%OUT%"
+echo %DATE% %TIME% >> "%OUT%"
+echo [1/9] Windows version
+echo. >> "%OUT%"
+echo == Windows >> "%OUT%"
+ver >> "%OUT%" 2>&1
+echo PROCESSOR_ARCHITECTURE=%PROCESSOR_ARCHITECTURE% PROCESSOR_ARCHITEW6432=%PROCESSOR_ARCHITEW6432% >> "%OUT%"
+reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v ProductName >> "%OUT%" 2>&1
+reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v DisplayVersion >> "%OUT%" 2>&1
+
+echo [2/9] Launcher file
+echo. >> "%OUT%"
+echo == Folder and files >> "%OUT%"
+echo %HERE% >> "%OUT%"
+dir "%HERE%SubootLauncher*" >> "%OUT%" 2>&1
+echo -- Zone.Identifier (downloaded from internet mark): >> "%OUT%"
+more < "%HERE%SubootLauncher.exe:Zone.Identifier" >> "%OUT%" 2>&1
+
+echo [3/9] Smart App Control
+echo. >> "%OUT%"
+echo == Smart App Control (0 off, 1 ON, 2 evaluation) >> "%OUT%"
+reg query "HKLM\SYSTEM\CurrentControlSet\Control\CI\Policy" /v VerifiedAndReputablePolicyState >> "%OUT%" 2>&1
+
+echo [4/9] Code Integrity blocks
+echo. >> "%OUT%"
+echo == Code Integrity / Smart App Control events (last 15) >> "%OUT%"
+wevtutil qe "Microsoft-Windows-CodeIntegrity/Operational" /c:15 /rd:true /f:text >> "%OUT%" 2>&1
+
+echo [5/9] Antivirus
+echo. >> "%OUT%"
+echo == Antivirus products >> "%OUT%"
+wmic /namespace:\\root\SecurityCenter2 path AntiVirusProduct get displayName,productState >> "%OUT%" 2>&1
+echo -- Defender detections (last 10) >> "%OUT%"
+wevtutil qe "Microsoft-Windows-Windows Defender/Operational" /q:"*[System[(EventID=1116 or EventID=1117)]]" /c:10 /rd:true /f:text >> "%OUT%" 2>&1
+
+echo [6/9] Running launcher processes
+echo. >> "%OUT%"
+echo == SubootLauncher processes before start >> "%OUT%"
+tasklist /fi "imagename eq SubootLauncher.exe" >> "%OUT%" 2>&1
+
+echo [7/9] Trial start (10 seconds)
+echo. >> "%OUT%"
+echo == Trial start >> "%OUT%"
+if exist "%HERE%SubootLauncher.exe" (
+    start "" "%HERE%SubootLauncher.exe"
+    ping -n 11 127.0.0.1 >nul
+    tasklist /v /fi "imagename eq SubootLauncher.exe" >> "%OUT%" 2>&1
+) else (
+    echo SubootLauncher.exe NOT FOUND next to this script >> "%OUT%"
+)
+
+echo [8/9] Application errors
+echo. >> "%OUT%"
+echo == Application errors (.NET Runtime, Application Error, last 10) >> "%OUT%"
+wevtutil qe Application /q:"*[System[Provider[@Name='.NET Runtime' or @Name='Application Error' or @Name='Windows Error Reporting']]]" /c:10 /rd:true /f:text >> "%OUT%" 2>&1
+
+echo [9/9] Launcher log
+echo. >> "%OUT%"
+echo == launcher.log (missing = launcher never started its code) >> "%OUT%"
+if exist "%APPDATA%\SubootGames\launcher.log" (
+    type "%APPDATA%\SubootGames\launcher.log" >> "%OUT%" 2>&1
+) else (
+    echo launcher.log not found >> "%OUT%"
+)
+
 echo.
-echo Готово. Отправьте файл suboot-diagnostics.txt с рабочего стола администратору.
+echo Done. Report: %OUT%
+echo Send this file to the server administrator.
+start "" notepad "%OUT%"
 pause
-exit /b
-
-#PS-BEGIN#
-param($here)
-$out = Join-Path ([Environment]::GetFolderPath('Desktop')) 'suboot-diagnostics.txt'
-$report = New-Object System.Collections.Generic.List[string]
-function Add($title, $value) { $report.Add("== $title"); $report.Add(($value | Out-String).TrimEnd()); $report.Add('') }
-function Try($block) { try { & $block } catch { "ошибка: $($_.Exception.Message)" } }
-
-$exe = Join-Path $here 'SubootLauncher.exe'
-Add 'Время' (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
-Add 'Windows' (Try { $os = Get-CimInstance Win32_OperatingSystem; "$($os.Caption) $($os.Version) build $($os.BuildNumber), $($os.OSArchitecture)" })
-Add 'Папка' $here
-Add 'Файл лаунчера' (Try {
-    if (-not (Test-Path $exe)) { 'SubootLauncher.exe НЕ найден рядом со скриптом' } else {
-        $f = Get-Item $exe
-        "размер: $($f.Length) байт ($([math]::Round($f.Length / 1MB, 1)) МБ)  (правильная сборка — около 62 МБ; пара сотен КБ — неправильная)"
-        "изменён: $($f.LastWriteTime)"
-        $zone = Get-Content $exe -Stream Zone.Identifier -ErrorAction SilentlyContinue
-        if ($zone) { 'пометка «скачан из интернета»: ЕСТЬ'; $zone } else { 'пометка «скачан из интернета»: нет' }
-    } })
-
-# Smart App Control: 0 — выключен, 1 — включён, 2 — режим оценки
-Add 'Smart App Control' (Try {
-    $v = (Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\CI\Policy' -Name VerifiedAndReputablePolicyState -ErrorAction Stop).VerifiedAndReputablePolicyState
-    switch ($v) { 0 { '0 — выключен' } 1 { '1 — ВКЛЮЧЁН (блокирует неподписанные программы)' } 2 { '2 — режим оценки' } default { $v } } })
-Add 'Блокировки Code Integrity / Smart App Control (7 дней)' (Try {
-    Get-WinEvent -FilterHashtable @{ LogName = 'Microsoft-Windows-CodeIntegrity/Operational'; StartTime = (Get-Date).AddDays(-7) } -ErrorAction Stop |
-        Where-Object { $_.Message -match 'SubootLauncher|Game\.exe|Warface' } | Select-Object -First 10 |
-        ForEach-Object { "$($_.TimeCreated) [$($_.Id)] " + ($_.Message -split "`n")[0] } })
-
-Add 'Защитник Windows: срабатывания' (Try {
-    Get-MpThreatDetection -ErrorAction Stop | Where-Object { ($_.Resources -join ' ') -match 'SubootLauncher|Warface' } |
-        ForEach-Object { "$($_.InitialDetectionTime) $($_.ThreatID) $($_.Resources -join ', ')" } })
-
-Add 'Процессы SubootLauncher до запуска' (Try { Get-Process SubootLauncher -ErrorAction SilentlyContinue | ForEach-Object { "$($_.Id) $($_.Path) окно: '$($_.MainWindowTitle)'" } })
-
-Add 'Пробный запуск (8 секунд)' (Try {
-    if (Test-Path $exe) {
-        $p = Start-Process $exe -WorkingDirectory $here -PassThru
-        Start-Sleep 8
-        if ($p.HasExited) { "процесс завершился, код $($p.ExitCode) (0x{0:X8})" -f $p.ExitCode } else { $p.Refresh(); "работает, окно: '$($p.MainWindowTitle)'" }
-    } })
-
-Add 'Ошибки приложений (1 день)' (Try {
-    Get-WinEvent -FilterHashtable @{ LogName = 'Application'; StartTime = (Get-Date).AddDays(-1) } -ErrorAction Stop |
-        Where-Object { $_.Message -match 'SubootLauncher' } | Select-Object -First 6 |
-        ForEach-Object { "---- $($_.TimeCreated) $($_.ProviderName)"; $_.Message.Substring(0, [Math]::Min(1200, $_.Message.Length)) } })
-
-Add 'Журнал лаунчера (последние строки)' (Try {
-    $log = Join-Path $env:APPDATA 'SubootGames\launcher.log'
-    if (Test-Path $log) { Get-Content $log -Encoding UTF8 -Tail 40 } else { 'launcher.log нет — лаунчер не успел начать работу (обычно его блокирует Windows или антивирус)' } })
-
-[IO.File]::WriteAllLines($out, $report, (New-Object Text.UTF8Encoding $true))
-Write-Host "Отчёт: $out"
