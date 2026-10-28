@@ -1,21 +1,9 @@
-<Window x:Class="SubootLauncher.Views.LoginWindow"
+<UserControl x:Class="SubootLauncher.Views.LoginPage"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:l="clr-namespace:SubootLauncher.Services"
-        Title="Suboot Games — Warface 2013" Width="460" SizeToContent="Height"
-        WindowStartupLocation="CenterScreen" ResizeMode="NoResize"
-        Background="{StaticResource LobbyBackground}">
-    <StackPanel Margin="28">
-        <!-- Логотип Suboot и название; справа — настройки (язык и оформление доступны до входа) -->
-        <DockPanel Margin="0,0,0,18">
-            <Button DockPanel.Dock="Right" Content="{l:T Common.Settings}" Style="{StaticResource TileButton}" VerticalAlignment="Top" Click="OnSettings"/>
-            <Border Style="{StaticResource LogoBadge}" Margin="0,0,14,0"/>
-            <StackPanel VerticalAlignment="Center">
-                <TextBlock Text="WARFACE 2013" Style="{StaticResource Logo}"/>
-                <TextBlock Text="{l:T App.Subtitle}" Style="{StaticResource LogoSub}"/>
-            </StackPanel>
-        </DockPanel>
-
+        xmlns:l="clr-namespace:SubootLauncher.Services">
+    <!-- Форма по центру окна; логотип и «Настройки» — в шапке окна -->
+    <StackPanel Width="420" HorizontalAlignment="Center" VerticalAlignment="Center">
         <!-- Вкладки «Вход / Регистрация» — жёлтые полосы, как вкладки классов в игре -->
         <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
             <RadioButton x:Name="LoginTab" Content="{l:T Login.Login}" Style="{StaticResource TabToggle}" IsChecked="True" Checked="OnModeChanged"/>
@@ -49,4 +37,4 @@
             </StackPanel>
         </Border>
     </StackPanel>
-</Window>
+</UserControl>

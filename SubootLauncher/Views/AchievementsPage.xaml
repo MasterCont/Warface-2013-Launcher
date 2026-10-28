@@ -1,10 +1,7 @@
-<Window x:Class="SubootLauncher.Views.AchievementsWindow"
+<UserControl x:Class="SubootLauncher.Views.AchievementsPage"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Достижения игрока" Width="900" Height="640" MinWidth="760" MinHeight="460"
-        WindowStartupLocation="CenterOwner"
-        Background="{StaticResource LobbyBackground}">
-    <Grid Margin="14">
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
@@ -91,4 +88,4 @@
 
         <TextBlock x:Name="StatusText" Grid.Row="1" Grid.ColumnSpan="3" Margin="0,10,0,0" TextWrapping="Wrap"/>
     </Grid>
-</Window>
+</UserControl>

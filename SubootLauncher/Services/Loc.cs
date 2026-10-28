@@ -28,6 +28,7 @@ public static class Loc
         ["Common.Refresh"] = "Обновить",
         ["Common.Choose"] = "Выбрать…",
         ["Common.Settings"] = "Настройки",
+        ["Common.Back"] = "‹ Назад",
 
         ["Login.Login"] = "Вход",
         ["Login.Register"] = "Регистрация",
@@ -101,6 +102,7 @@ public static class Loc
         ["Common.Refresh"] = "Refresh",
         ["Common.Choose"] = "Browse…",
         ["Common.Settings"] = "Settings",
+        ["Common.Back"] = "‹ Back",
 
         ["Login.Login"] = "Log in",
         ["Login.Register"] = "Sign up",

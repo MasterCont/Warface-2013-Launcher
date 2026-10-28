@@ -1,16 +1,15 @@
 using System.Windows;
+using System.Windows.Controls;
 using SubootLauncher.Services;
 
 namespace SubootLauncher.Views;
 
 /// <summary>Окно входа и регистрации (регистрация — по ключу приглашения, если сервер приватный).</summary>
-public partial class LoginWindow : Window
+public partial class LoginPage : UserControl
 {
-    public bool LoggedIn { get; private set; }
-
     private bool IsRegister => RegisterTab.IsChecked == true;
 
-    public LoginWindow()
+    public LoginPage()
     {
         InitializeComponent();
         Loaded += (_, _) => LoginBox.Focus();
@@ -71,9 +70,7 @@ public partial class LoginWindow : Window
             if (RememberBox.IsChecked == true) Settings.SaveSession(session.Session!);
             var me = await App.Api.GetMeAsync(session.Session!);
 
-            LoggedIn = true;
             App.ShowMain(session.Session!, me);
-            Close();
         }
         catch (ApiException error)
         {
@@ -84,8 +81,6 @@ public partial class LoginWindow : Window
             SubmitButton.IsEnabled = true;
         }
     }
-
-    private void OnSettings(object sender, RoutedEventArgs e) => new SettingsWindow { Owner = this }.ShowDialog();
 
     private void ShowError(string text)
     {

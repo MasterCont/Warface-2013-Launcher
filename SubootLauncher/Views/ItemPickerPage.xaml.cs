@@ -4,18 +4,19 @@ using SubootLauncher.Services;
 
 namespace SubootLauncher.Views;
 
-/// <summary>Выбор предмета из каталога игры (по 15 на странице). Результат — <see cref="Selected"/>.</summary>
-public partial class ItemPickerWindow : Window
+/// <summary>Выбор предмета из каталога игры (по 15 на странице): выбранный передаётся в onPicked, страница закрывается.</summary>
+public partial class ItemPickerPage : UserControl
 {
     private readonly ApiClient _api;
     private int _page = 1;
 
-    public GameItem? Selected { get; private set; }
+    private readonly Action<GameItem> _onPicked;
 
-    public ItemPickerWindow(ApiClient api, string? group = null)
+    public ItemPickerPage(ApiClient api, string? group, Action<GameItem> onPicked)
     {
         InitializeComponent();
         _api = api;
+        _onPicked = onPicked;
         GroupBox.ItemsSource = ItemNames.Groups.Select(g => g.Title).ToList();
         GroupBox.SelectedIndex = Math.Max(0, Array.FindIndex(ItemNames.Groups, g => g.Id == group));
         Loaded += async (_, _) =>
@@ -81,7 +82,7 @@ public partial class ItemPickerWindow : Window
     private void OnChoose(object sender, RoutedEventArgs e)
     {
         if (ItemsList.SelectedItem is not GameItem item) return;
-        Selected = item;
-        DialogResult = true;
+        App.Shell.Back();
+        _onPicked(item);
     }
 }

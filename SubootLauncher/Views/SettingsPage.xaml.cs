@@ -1,14 +1,15 @@
 using System.Windows;
+using System.Windows.Controls;
 using SubootLauncher.Services;
 
 namespace SubootLauncher.Views;
 
 /// <summary>Язык и оформление. Применяются перезапуском лаунчера (сессия сохранена — вход не нужен).</summary>
-public partial class SettingsWindow : Window
+public partial class SettingsPage : UserControl
 {
     private readonly string[] _themes = App.Themes.Keys.ToArray();
 
-    public SettingsWindow()
+    public SettingsPage()
     {
         InitializeComponent();
         LanguageBox.ItemsSource = Loc.Languages.Select(l => l.Title).ToList();
@@ -17,16 +18,18 @@ public partial class SettingsWindow : Window
         ThemeBox.SelectedIndex = Math.Max(0, Array.IndexOf(_themes, App.Settings.Theme ?? "classic"));
     }
 
+    private void OnCancel(object sender, RoutedEventArgs e) => App.Shell.Back();
+
     private void OnSave(object sender, RoutedEventArgs e)
     {
         var language = Loc.Languages[Math.Max(0, LanguageBox.SelectedIndex)].Id;
         var theme = _themes[Math.Max(0, ThemeBox.SelectedIndex)];
         if (language == Loc.Language && theme == (App.Settings.Theme ?? "classic"))
         {
-            Close();
+            App.Shell.Back();
             return;
         }
-        if (MessageBox.Show(this, Loc.T("Settings.Confirm"), Loc.T("Settings.Title"), MessageBoxButton.OKCancel, MessageBoxImage.Question) != MessageBoxResult.OK) return;
+        if (MessageBox.Show(App.Shell, Loc.T("Settings.Confirm"), Loc.T("Settings.Title"), MessageBoxButton.OKCancel, MessageBoxImage.Question) != MessageBoxResult.OK) return;
         App.Settings.Language = language;
         App.Settings.Theme = theme;
         App.Settings.Save();

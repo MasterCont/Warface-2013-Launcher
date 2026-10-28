@@ -1,11 +1,12 @@
-﻿using System.Windows;
+using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Threading;
 using Microsoft.Win32;
 using SubootLauncher.Services;
 using SubootLauncher.Views;
 
-namespace SubootLauncher;
+namespace SubootLauncher.Views;
 
 /// <summary>Строка списка серверов: данные API + цвет точки и подпись.</summary>
 public record ServerRow(ServerInfo Server)
@@ -28,7 +29,7 @@ public record ServerRow(ServerInfo Server)
 }
 
 /// <summary>Главное окно: персонаж, серверы, папка игры и запуск.</summary>
-public partial class MainWindow : Window
+public partial class HomePage : UserControl
 {
     private readonly string _session;
     private AccountInfo _me;
@@ -37,9 +38,7 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _gameWatch = new() { Interval = TimeSpan.FromSeconds(2) };
     private bool _starting;
 
-    public bool LoggedOut { get; private set; }
-
-    public MainWindow(string session, AccountInfo me)
+    public HomePage(string session, AccountInfo me)
     {
         InitializeComponent();
         _session = session;
@@ -49,10 +48,14 @@ public partial class MainWindow : Window
         ShowAccount();
         ShowGamePath();
         _gameWatch.Tick += (_, _) => UpdatePlayButton();
-        _gameWatch.Start();
-        UpdatePlayButton();
-        Closed += (_, _) => _gameWatch.Stop();
-        Loaded += async (_, _) => await LoadServersAsync();
+        // Пока открыта другая страница, главная выгружена — следим за игрой, только когда она видна
+        Loaded += async (_, _) =>
+        {
+            _gameWatch.Start();
+            UpdatePlayButton();
+            await LoadServersAsync();
+        };
+        Unloaded += (_, _) => _gameWatch.Stop();
     }
 
     private void UpdatePlayButton()
@@ -65,15 +68,7 @@ public partial class MainWindow : Window
 
     private void ShowAccount()
     {
-        AccountLogin.Text = _me.Login;
-        AccountRole.Text = _me.Role switch
-        {
-            "admin" => Loc.T("Main.RoleAdmin"),
-            "moderator" => Loc.T("Main.RoleModerator"),
-            _ => Loc.T("Main.Uid", _me.Uid),
-        };
-        StaffButton.Visibility = _me.IsStaff ? Visibility.Visible : Visibility.Collapsed;
-
+        App.Shell.SetAccount(_me);
         if (_me.Profile is { } profile)
         {
             ProfilePanel.Visibility = Visibility.Visible;
@@ -140,7 +135,7 @@ public partial class MainWindow : Window
     private void OnChooseFolder(object sender, RoutedEventArgs e)
     {
         var dialog = new OpenFolderDialog { Title = Loc.T("Main.FolderDialog") };
-        if (dialog.ShowDialog(this) != true) return;
+        if (dialog.ShowDialog(App.Shell) != true) return;
         if (!GameLauncher.IsGameFolder(dialog.FolderName))
         {
             StatusText.Text = Loc.T("Main.NotGameFolder");
@@ -188,8 +183,8 @@ public partial class MainWindow : Window
         catch (ApiException error) when (error.Code == 401)
         {
             Settings.ForgetSession();
-            MessageBox.Show(this, error.Message, Loc.T("Main.LoginTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
-            OnLogout(sender, e);
+            MessageBox.Show(App.Shell, error.Message, Loc.T("Main.LoginTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
+            App.ShowLogin();
         }
         catch (Exception error)
         {
@@ -200,26 +195,5 @@ public partial class MainWindow : Window
             _starting = false;
             UpdatePlayButton();
         }
-    }
-
-    private void OnSettings(object sender, RoutedEventArgs e) => new SettingsWindow { Owner = this }.ShowDialog();
-
-    private void OnChangePassword(object sender, RoutedEventArgs e)
-    {
-        new ChangePasswordWindow(_me.Login) { Owner = this }.ShowDialog();
-    }
-
-    private void OnStaff(object sender, RoutedEventArgs e)
-    {
-        new ModerationWindow(_session, _me) { Owner = this }.Show();
-    }
-
-    private async void OnLogout(object sender, RoutedEventArgs e)
-    {
-        try { await App.Api.LogoutAsync(_session); } catch (ApiException) { /* сессия могла уже истечь */ }
-        Settings.ForgetSession();
-        LoggedOut = true;
-        App.ShowLogin();
-        Close();
     }
 }

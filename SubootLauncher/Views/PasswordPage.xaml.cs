@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Controls;
 using SubootLauncher.Services;
 
 namespace SubootLauncher.Views;
@@ -7,11 +8,11 @@ namespace SubootLauncher.Views;
 /// Смена пароля. Сервер при этом завершает все сессии аккаунта — поэтому сразу входим заново
 /// и сохраняем новую сессию, если вход был запомнен.
 /// </summary>
-public partial class ChangePasswordWindow : Window
+public partial class PasswordPage : UserControl
 {
     private readonly string _login;
 
-    public ChangePasswordWindow(string login)
+    public PasswordPage(string login)
     {
         InitializeComponent();
         _login = login;
@@ -33,8 +34,8 @@ public partial class ChangePasswordWindow : Window
             await App.Api.ChangePasswordAsync(_login, OldBox.Password, NewBox.Password);
             var session = await App.Api.LoginAsync(_login, NewBox.Password, remember: true);
             if (Settings.LoadSession() != null) Settings.SaveSession(session.Session!);
-            MessageBox.Show(this, Loc.T("Password.Done"), Loc.T("Password.Title"));
-            Close();
+            MessageBox.Show(App.Shell, Loc.T("Password.Done"), Loc.T("Password.Title"));
+            App.Shell.Back();
         }
         catch (ApiException error)
         {

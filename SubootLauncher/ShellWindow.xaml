@@ -1,0 +1,53 @@
+<Window x:Class="SubootLauncher.ShellWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:l="clr-namespace:SubootLauncher.Services"
+        Title="Suboot Games — Warface 2013" Width="980" Height="660" MinWidth="840" MinHeight="580"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource LobbyBackground}">
+    <!-- Единственное окно лаунчера: шапка, строка «‹ Назад · страница», страница -->
+    <Grid Margin="22,18,22,22">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Шапка: логотип сайта (шестигранник «W») и аккаунт -->
+        <DockPanel Grid.Row="0" Margin="0,0,0,14">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                <StackPanel x:Name="AccountPanel" Margin="0,0,14,0" HorizontalAlignment="Right" Visibility="Collapsed">
+                    <TextBlock x:Name="AccountLogin" HorizontalAlignment="Right" Foreground="#FFF4F4F4" FontWeight="SemiBold"/>
+                    <TextBlock x:Name="AccountRole" HorizontalAlignment="Right" Style="{StaticResource Muted}"/>
+                </StackPanel>
+                <Button x:Name="StaffButton" Content="{l:T Main.Staff}" Style="{StaticResource TileButton}" Margin="0,0,6,0" Visibility="Collapsed" Click="OnStaff"/>
+                <Button Content="{l:T Common.Settings}" Style="{StaticResource TileButton}" Margin="0,0,6,0" Click="OnSettings"/>
+                <Button x:Name="PasswordButton" Content="{l:T Main.ChangePassword}" Style="{StaticResource TileButton}" Margin="0,0,6,0" Visibility="Collapsed" Click="OnChangePassword"/>
+                <Button x:Name="LogoutButton" Content="{l:T Main.Logout}" Style="{StaticResource TileButton}" Visibility="Collapsed" Click="OnLogout"/>
+            </StackPanel>
+            <Button Style="{StaticResource LogoButton}" Click="OnHome" ToolTip="Warface 2013">
+                <StackPanel Orientation="Horizontal">
+                    <Viewbox Width="58" Height="58" Margin="0,0,14,0">
+                        <Canvas Width="64" Height="64">
+                            <Polygon Points="32,2 60,17 60,47 32,62 4,47 4,17" Fill="#FFF5A300" Stroke="#FF1D1200" StrokeThickness="3"/>
+                            <TextBlock Canvas.Left="0" Canvas.Top="11" Width="64" TextAlignment="Center" Text="W"
+                                       FontFamily="Arial Black" FontWeight="Black" FontSize="30" Foreground="#FF1D1200"/>
+                        </Canvas>
+                    </Viewbox>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="WARFACE 2013" Style="{StaticResource Logo}"/>
+                        <TextBlock Text="{l:T App.Subtitle}" Style="{StaticResource LogoSub}"/>
+                    </StackPanel>
+                </StackPanel>
+            </Button>
+        </DockPanel>
+
+        <!-- Навигация: видна на вложенных страницах -->
+        <DockPanel x:Name="BackBar" Grid.Row="1" Margin="0,0,0,12" Visibility="Collapsed">
+            <Button DockPanel.Dock="Left" Content="{l:T Common.Back}" Style="{StaticResource TileButton}" Margin="0,0,14,0" Click="OnBack"/>
+            <TextBlock x:Name="PageTitle" Style="{StaticResource Title}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+        </DockPanel>
+
+        <ContentControl x:Name="PageHost" Grid.Row="2" Focusable="False"/>
+    </Grid>
+</Window>

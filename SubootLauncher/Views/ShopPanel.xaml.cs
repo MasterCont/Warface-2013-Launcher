@@ -148,8 +148,11 @@ public partial class ShopPanel : UserControl
 
     private void OnNewOffer(object sender, RoutedEventArgs e)
     {
-        var picker = new ItemPickerWindow(_api, ItemNames.Groups[Math.Max(0, GroupBox.SelectedIndex)].Id) { Owner = Window.GetWindow(this) };
-        if (picker.ShowDialog() != true || picker.Selected is not { } item) return;
+        App.Shell.Navigate(new ItemPickerPage(_api, ItemNames.Groups[Math.Max(0, GroupBox.SelectedIndex)].Id, StartNewOffer), "Новое предложение: выбор предмета");
+    }
+
+    private void StartNewOffer(GameItem item)
+    {
         _newItem = item;
         _offer = null;
         OffersList.SelectedItem = null;

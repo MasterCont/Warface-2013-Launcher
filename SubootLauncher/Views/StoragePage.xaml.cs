@@ -1,23 +1,29 @@
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 using SubootLauncher.Services;
 
 namespace SubootLauncher.Views;
 
 /// <summary>Склад игрока (администратор): правка и удаление предметов, выдача новых.</summary>
-public partial class StorageWindow : Window
+public partial class StoragePage : UserControl
 {
     private readonly ApiClient _api;
     private readonly string _nick;
     private StorageItem[] _items = [];
+    private bool _loaded;
 
-    public StorageWindow(ApiClient api, string nick)
+    public StoragePage(ApiClient api, string nick)
     {
         InitializeComponent();
         _api = api;
         _nick = nick;
-        Title = $"Склад — {nick}";
-        Loaded += async (_, _) => await Run(LoadAsync);
+        Loaded += async (_, _) =>
+        {
+            if (_loaded) return;
+            _loaded = true;
+            await Run(LoadAsync);
+        };
     }
 
     private async Task Run(Func<Task> action)
@@ -44,7 +50,7 @@ public partial class StorageWindow : Window
     }
 
     private bool Confirm(string question) =>
-        MessageBox.Show(this, question, "Подтверждение", MessageBoxButton.OKCancel, MessageBoxImage.Question) == MessageBoxResult.OK;
+        MessageBox.Show(App.Shell, question, "Подтверждение", MessageBoxButton.OKCancel, MessageBoxImage.Question) == MessageBoxResult.OK;
 
     private async Task LoadAsync()
     {
@@ -135,8 +141,7 @@ public partial class StorageWindow : Window
 
     private void OnPickItem(object sender, RoutedEventArgs e)
     {
-        var picker = new ItemPickerWindow(_api) { Owner = this };
-        if (picker.ShowDialog() == true && picker.Selected is { } item) GiveNameBox.Text = item.Name;
+        App.Shell.Navigate(new ItemPickerPage(_api, null, item => GiveNameBox.Text = item.Name), "Выбор предмета");
     }
 
     private void OnDaysFocus(object sender, RoutedEventArgs e) => GiveRental.IsChecked = true;

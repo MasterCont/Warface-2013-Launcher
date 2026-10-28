@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Threading;
 using System.Windows;
 using SubootLauncher.Services;
@@ -102,8 +102,8 @@ public partial class App : Application
 
     private static void BringToFront()
     {
-        var window = Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsVisible && w.Owner == null);
-        if (window == null) return;
+        var window = Shell;
+        if (window == null || !window.IsVisible) return;
         if (window.WindowState == WindowState.Minimized) window.WindowState = WindowState.Normal;
         window.Activate();
         // Activate не всегда выводит окно поверх чужих: на мгновение делаем его «поверх всех»
@@ -126,17 +126,26 @@ public partial class App : Application
         base.OnExit(e);
     }
 
+    /// <summary>Единственное окно лаунчера; закрыли его — лаунчер завершается.</summary>
+    public static ShellWindow Shell { get; private set; } = null!;
+
+    private static void EnsureShell()
+    {
+        if (Shell != null) return;
+        Shell = new ShellWindow();
+        Shell.Closed += (_, _) => Current.Shutdown();
+        Shell.Show();
+    }
+
     public static void ShowLogin()
     {
-        var window = new LoginWindow();
-        window.Closed += (_, _) => { if (!window.LoggedIn) Current.Shutdown(); };
-        window.Show();
+        EnsureShell();
+        Shell.ShowLogin();
     }
 
     public static void ShowMain(string session, AccountInfo me)
     {
-        var window = new MainWindow(session, me);
-        window.Closed += (_, _) => { if (!window.LoggedOut) Current.Shutdown(); };
-        window.Show();
+        EnsureShell();
+        Shell.ShowHome(session, me);
     }
 }

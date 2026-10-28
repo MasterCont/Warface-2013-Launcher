@@ -10,7 +10,7 @@ namespace SubootLauncher.Views;
 /// Панель модерации. Все действия идут в API с сессией модератора/админа — права проверяет сервер,
 /// здесь только прячутся вкладки, недоступные роли.
 /// </summary>
-public partial class ModerationWindow : Window
+public partial class ModerationPage : UserControl, IReturnAware
 {
     private readonly ApiClient _api;
     private readonly bool _isAdmin;
@@ -18,18 +18,30 @@ public partial class ModerationWindow : Window
     private string _search = "";
     private int _page = 1;
     private bool _playersLoaded;
+    private bool _onlineLoaded;
 
-    public ModerationWindow(string session, AccountInfo me)
+    /// <summary>Вернулись со склада или достижений — карточка игрока могла устареть.</summary>
+    public void OnReturned()
+    {
+        if (_player != null && TabPlayer.IsChecked == true) _ = Run(RefreshPlayerAsync);
+    }
+
+    public ModerationPage(string session, AccountInfo me)
     {
         InitializeComponent();
         _api = new ApiClient { StaffSession = session };
         _isAdmin = me.Role == "admin";
-        Title = $"Модерация — {me.Login} ({(_isAdmin ? "администратор" : "модератор")})";
         TabInvites.Visibility = _isAdmin ? Visibility.Visible : Visibility.Collapsed;
         TabAccounts.Visibility = _isAdmin ? Visibility.Visible : Visibility.Collapsed;
         TabShop.Visibility = _isAdmin ? Visibility.Visible : Visibility.Collapsed;
         PageShop.Init(_api, Status);
-        Loaded += async (_, _) => await LoadOnlineAsync();
+        // Loaded срабатывает и при возврате со склада или достижений — онлайн загружаем один раз
+        Loaded += async (_, _) =>
+        {
+            if (_onlineLoaded) return;
+            _onlineLoaded = true;
+            await Run(LoadOnlineAsync);
+        };
     }
 
     // --- Общее ---
@@ -81,7 +93,7 @@ public partial class ModerationWindow : Window
     }
 
     private bool Confirm(string question) =>
-        MessageBox.Show(this, question, "Подтверждение", MessageBoxButton.OKCancel, MessageBoxImage.Question) == MessageBoxResult.OK;
+        MessageBox.Show(App.Shell, question, "Подтверждение", MessageBoxButton.OKCancel, MessageBoxImage.Question) == MessageBoxResult.OK;
 
     // --- Онлайн ---
 
@@ -289,13 +301,13 @@ public partial class ModerationWindow : Window
     private void OnAchievements(object sender, RoutedEventArgs e)
     {
         if (_player == null) return;
-        new AchievementsWindow(_api, _player.Nick) { Owner = this }.Show();
+        App.Shell.Navigate(new AchievementsPage(_api, _player.Nick), $"Достижения — {_player.Nick}");
     }
 
     private void OnStorage(object sender, RoutedEventArgs e)
     {
         if (_player == null) return;
-        new StorageWindow(_api, _player.Nick) { Owner = this }.Show();
+        App.Shell.Navigate(new StoragePage(_api, _player.Nick), $"Склад — {_player.Nick}");
     }
 
     // --- Баны ---
@@ -385,7 +397,7 @@ public partial class ModerationWindow : Window
         var password = new string(Enumerable.Range(0, 10).Select(_ => alphabet[RandomNumberGenerator.GetInt32(alphabet.Length)]).ToArray());
         await _api.SetPasswordAsync(account.Login, password);
         Clipboard.SetText(password);
-        MessageBox.Show(this, $"Новый пароль для {account.Login}:\n\n{password}\n\nОн уже скопирован. Передайте его игроку — он сменит его в лаунчере.",
+        MessageBox.Show(App.Shell, $"Новый пароль для {account.Login}:\n\n{password}\n\nОн уже скопирован. Передайте его игроку — он сменит его в лаунчере.",
             "Временный пароль");
         Status($"Пароль {account.Login} изменён");
     });

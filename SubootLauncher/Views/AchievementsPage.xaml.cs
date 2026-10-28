@@ -6,7 +6,7 @@ using SubootLauncher.Services;
 namespace SubootLauncher.Views;
 
 /// <summary>Достижения игрока (администратор): назначить, забрать, задать прогресс — по одному, выделенным или все.</summary>
-public partial class AchievementsWindow : Window
+public partial class AchievementsPage : UserControl
 {
     private static readonly (bool? Completed, string Title)[] States =
     [
@@ -19,12 +19,11 @@ public partial class AchievementsWindow : Window
     private readonly string _nick;
     private PlayerAchievement[] _all = [];
 
-    public AchievementsWindow(ApiClient api, string nick)
+    public AchievementsPage(ApiClient api, string nick)
     {
         InitializeComponent();
         _api = api;
         _nick = nick;
-        Title = $"Достижения — {nick}";
         BannerBox.ItemsSource = AchievementNames.Banners.Select(b => b.Title).ToList();
         BannerBox.SelectedIndex = 0;
         StateBox.ItemsSource = States.Select(s => s.Title).ToList();
@@ -56,7 +55,7 @@ public partial class AchievementsWindow : Window
     }
 
     private bool Confirm(string question) =>
-        MessageBox.Show(this, question, "Подтверждение", MessageBoxButton.OKCancel, MessageBoxImage.Question) == MessageBoxResult.OK;
+        MessageBox.Show(App.Shell, question, "Подтверждение", MessageBoxButton.OKCancel, MessageBoxImage.Question) == MessageBoxResult.OK;
 
     private async Task LoadAsync()
     {
