@@ -94,6 +94,8 @@ public static class Loc
 
         ["Api.Unreachable"] = "Сервер недоступен. Проверьте интернет и попробуйте ещё раз",
         ["Api.Error"] = "Ошибка сервера",
+        ["Api.BadResponse"] = "Неожиданный ответ сервера, обновите лаунчер",
+        ["App.Crash"] = "Непредвиденная ошибка. Лаунчер продолжит работу, но если ошибка повторяется — сообщите администратору.",
     };
 
     private static readonly Dictionary<string, string> En = new()
@@ -168,6 +170,8 @@ public static class Loc
 
         ["Api.Unreachable"] = "The server is unreachable. Check your connection and try again",
         ["Api.Error"] = "Server error",
+        ["Api.BadResponse"] = "Unexpected server response, update the launcher",
+        ["App.Crash"] = "Unexpected error. The launcher keeps running; if it happens again, tell the administrator.",
     };
 }
 

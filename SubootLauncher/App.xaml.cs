@@ -33,6 +33,14 @@ public partial class App : Application
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        // Страховка: необработанная ошибка в обработчике кнопки показывает сообщение, а не роняет лаунчер
+        DispatcherUnhandledException += (_, args) =>
+        {
+            args.Handled = true;
+            MessageBox.Show(Shell, Loc.T("App.Crash") + Environment.NewLine + Environment.NewLine + args.Exception.GetType().Name + ": " + args.Exception.Message,
+                "Suboot Games", MessageBoxButton.OK, MessageBoxImage.Warning);
+        };
+        TaskScheduler.UnobservedTaskException += (_, args) => args.SetObserved();
         if (!TakeInstance(e.Args.Contains(RestartArgument)))
         {
             Shutdown();

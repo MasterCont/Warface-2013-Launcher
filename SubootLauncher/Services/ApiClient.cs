@@ -185,6 +185,8 @@ public class ApiClient
     {
         PropertyNameCaseInsensitive = true,
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+        // PostgreSQL отдаёт bigint (uid аккаунта) строкой: "uid": "1"
+        NumberHandling = JsonNumberHandling.AllowReadingFromString,
     };
 
     // Тексты ответов API → по-русски
@@ -400,7 +402,15 @@ public class ApiClient
         }
         if (reasonOnly) return (T)(object)(root.GetProperty("reason").GetString() ?? "");
         var data = root.GetProperty("data");
-        return data.Deserialize<T>(Json)!;
+        try
+        {
+            return data.Deserialize<T>(Json)!;
+        }
+        catch (JsonException error)
+        {
+            // Ответ не того вида, что ждёт лаунчер (сервер новее/старее) — ошибка, а не падение приложения
+            throw new ApiException(Loc.T("Api.BadResponse") + " (" + path.Split('?')[0] + ": " + error.Message + ")", 0);
+        }
     }
 
     private static string Translate(string reason) => reason switch
