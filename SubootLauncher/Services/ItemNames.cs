@@ -58,8 +58,11 @@ public static class ItemNames
 
     public static string Group(string group) => Groups.FirstOrDefault(g => g.Id == group).Title ?? group;
 
-    public static string Title(string name, string category) =>
-        category == "" ? name : $"{name}  ·  {Category(category)}";
+    /// <summary>Русское название из игры (если есть) и категория; внутреннее имя — когда названия нет.</summary>
+    public static string Title(string name, string category, string? title = null) =>
+        !string.IsNullOrEmpty(title)
+            ? (category == "" ? title : $"{title}  ·  {Category(category)}")
+            : (category == "" ? name : $"{name}  ·  {Category(category)}");
 
     /// <summary>Остаток срока: «3 д 4 ч», «5 ч 10 мин».</summary>
     public static string Duration(long seconds)

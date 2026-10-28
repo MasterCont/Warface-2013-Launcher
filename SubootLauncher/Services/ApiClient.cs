@@ -27,7 +27,24 @@ public record ProfileInfo(
     string? Clan,
     [property: JsonPropertyName("pvp_rating_points")] long PvpRatingPoints,
     MoneyInfo Money,
-    RankProgressInfo? RankProgress = null);
+    RankProgressInfo? RankProgress = null,
+    long PlaySeconds = 0,
+    LoginBonusInfo? LoginBonus = null);
+
+/// <summary>Предмет награды: на время (Days), штуки (Quantity) или навсегда.</summary>
+public record RewardItem(string Name, string? Title, int? Days, int? Quantity)
+{
+    public string Caption => (Title ?? Name) + (Days is { } d ? $" · {d} дн." : Quantity is { } q ? $" × {q}" : " · навсегда");
+}
+
+/// <summary>Награда одного дня серии входов.</summary>
+public record RewardDay(long Cry, long Crown, RewardItem? Item);
+
+/// <summary>Настройки наград за вход (администратор).</summary>
+public record LoginRewardsConfig(bool Enabled, RewardDay[] Days);
+
+/// <summary>Награды за ежедневный вход и положение игрока в серии.</summary>
+public record LoginBonusInfo(bool Enabled, RewardDay[] Days, bool ClaimedToday, int Current, int Next, int Streak);
 
 /// <summary>Границы текущего звания: опыт начала и следующего звания (null — звание последнее).</summary>
 public record RankProgressInfo(int Rank, long Current, long? Next);
@@ -119,9 +136,10 @@ public record DurabilityInfo(int Points, int Total);
 
 /// <summary>Предмет на складе игрока (kind: permanent | rental | consumable | default | unlimited).</summary>
 public record StorageItem(int Id, string Name, string Group, string Category, string Kind, bool Equipped,
-    DurabilityInfo? Durability, long? ExpiresAt, long? SecondsLeft, int? Quantity, long? BoughtAt)
+    DurabilityInfo? Durability, long? ExpiresAt, long? SecondsLeft, int? Quantity, long? BoughtAt,
+    [property: JsonPropertyName("title")] string? RuTitle = null)
 {
-    public string Title => ItemNames.Title(Name, Category);
+    public string Title => ItemNames.Title(Name, Category, RuTitle);
 
     public string State => Kind switch
     {
@@ -136,9 +154,10 @@ public record StorageItem(int Id, string Name, string Group, string Category, st
 public record ShopOffer(int Id, string ItemName, string Group, string Category, string Classes,
     long GameMoney, long CryMoney, long CrownMoney, long Discount, int Rank, int DurabilityPoints, long RepairCost,
     int Quantity, string ExpirationTime, string OfferStatus, string ItemCategoryOverride, bool Refundable,
-    string State, ShopOffer? Original, string? UpdatedBy, string? UpdatedAt)
+    string State, ShopOffer? Original, string? UpdatedBy, string? UpdatedAt,
+    [property: JsonPropertyName("title")] string? RuTitle = null)
 {
-    public string Title => ItemNames.Title(ItemName, Category);
+    public string Title => ItemNames.Title(ItemName, Category, RuTitle);
 
     public string Price => string.Join(" + ", new[]
     {
@@ -160,9 +179,11 @@ public record ShopOffer(int Id, string ItemName, string Group, string Category, 
 
 public record ShopPage(ShopOffer[] Offers, int Page, int Pages, int Total, string[] Statuses);
 
-public record GameItem(string Name, string Group, string Category, string Classes)
+public record GameItem(string Name, string Group, string Category, string Classes,
+    [property: JsonPropertyName("title")] string? RuTitle = null)
 {
-    public string Title => ItemNames.Title(Name, Category);
+    public string Title => ItemNames.Title(Name, Category, RuTitle);
+    public string Caption => string.IsNullOrEmpty(RuTitle) ? Name : RuTitle;
     public string GroupTitle => ItemNames.Group(Group);
     public string CategoryTitle => ItemNames.Category(Category);
 }
@@ -171,9 +192,10 @@ public record ItemsPage(GameItem[] Items, int Page, int Pages, int Total);
 
 /// <summary>Достижение игры с прогрессом игрока.</summary>
 public record PlayerAchievement(int Id, string Kind, long Amount, string Name, string BannerType, string BannerImage,
-    long Progress, bool Completed, long? CompletionTime)
+    long Progress, bool Completed, long? CompletionTime,
+    [property: JsonPropertyName("title")] string? RuTitle = null, string? Description = null)
 {
-    public string Title => $"#{Id}  {Name}";
+    public string Title => string.IsNullOrEmpty(RuTitle) ? $"#{Id}  {Name}" : $"#{Id}  {RuTitle}" + (string.IsNullOrEmpty(Description) ? "" : $" — {Description}");
 
     public string Details => $"{AchievementNames.Kind(Kind)} · {AchievementNames.Banner(BannerType)} · "
         + (Completed
@@ -549,6 +571,12 @@ public class ApiClient
 
     public Task<string> CancelResetAsync(long id) => SendForReasonAsync(HttpMethod.Delete, "/v1/admin/resets/" + id);
 
+    // --- Награды за ежедневный вход (админ) ---
+
+    public Task<LoginRewardsConfig> GetLoginRewardsAsync() => SendAsync<LoginRewardsConfig>(HttpMethod.Get, "/v1/admin/login-rewards");
+
+    public Task<LoginRewardsConfig> SaveLoginRewardsAsync(object config) => SendAsync<LoginRewardsConfig>(HttpMethod.Put, "/v1/admin/login-rewards", config);
+
     public Task<ItemsPage> GetItemsAsync(string search, string? group, int page) =>
         SendAsync<ItemsPage>(HttpMethod.Get, $"/v1/admin/items?page={page}&search={Uri.EscapeDataString(search)}" + (group != null ? "&group=" + group : ""));
 
@@ -652,6 +680,7 @@ public class ApiClient
         _ when reason.StartsWith("Moderators can ban for at most") => "Модератор может банить максимум на " + reason[31..].Replace(" hours", " ч"),
         _ when reason.StartsWith("Role '") => "Недостаточно прав для этого действия",
         _ when reason.StartsWith("Complaint ") && reason.EndsWith(" not found") => "Жалоба не найдена",
+        _ when reason.StartsWith("day ") => "Награды за вход: " + reason.Replace("day ", "день ").Replace("unknown item", "нет такого предмета").Replace("a day must give something", "день должен что-то давать"),
         _ when reason.StartsWith("Confirmation does not match") => "Подтверждение не совпало — сброс не запланирован",
         _ when reason.StartsWith("A reset of this player is already scheduled") => "Сброс этого игрока уже запланирован — см. вкладку «Сервер»",
         _ when reason.StartsWith("A reset of all accounts is already scheduled") => "Сброс всех аккаунтов уже запланирован — см. вкладку «Сервер»",

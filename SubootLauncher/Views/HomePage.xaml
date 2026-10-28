@@ -6,6 +6,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <Grid Grid.Row="0">
@@ -40,6 +41,7 @@
                             </Grid>
                             <TextBlock x:Name="ProgressText" Style="{StaticResource Muted}" FontSize="11"/>
                             <TextBlock x:Name="MoneyText" Margin="0,8,0,0"/>
+                            <TextBlock x:Name="PlayTimeText" Style="{StaticResource Muted}" Margin="0,4,0,0"/>
                             <!-- Изменения с последнего обновления: «+1 250 варбаксов», «Новое звание: 5!» -->
                             <WrapPanel x:Name="DeltaPanel" Margin="0,4,0,0"/>
                         </StackPanel>
@@ -97,7 +99,53 @@
         </Grid>
 
         <!-- Низ: папка игры и «Играть» -->
-        <DockPanel Grid.Row="1" Margin="0,18,0,0">
+        <!-- Награды за ежедневный вход: две недели, по 7 дней в строке -->
+        <Border x:Name="RewardsPanel" Grid.Row="1" Style="{StaticResource Panel}" Margin="0,14,0,0" Padding="14,10" Visibility="Collapsed">
+            <DockPanel>
+                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                    <TextBlock x:Name="RewardsStreakText" DockPanel.Dock="Right" Foreground="{StaticResource YellowBrush}" VerticalAlignment="Center"/>
+                    <TextBlock Text="{l:T Rewards.Title}" Style="{StaticResource Title}" VerticalAlignment="Center"/>
+                    <TextBlock Text="{l:T Rewards.Hint}" Style="{StaticResource Muted}" VerticalAlignment="Center" Margin="12,2,0,0" TextTrimming="CharacterEllipsis"/>
+                </DockPanel>
+                <ItemsControl x:Name="RewardsList">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate><UniformGrid Columns="7"/></ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border x:Name="Cell" Margin="0,0,4,4" Padding="6,4" Background="#FF1C1F23" BorderThickness="1" BorderBrush="#FF2C3036"
+                                    ToolTip="{Binding Tooltip}" Height="74">
+                                <StackPanel>
+                                    <DockPanel>
+                                        <TextBlock x:Name="Mark" DockPanel.Dock="Right" Text="{Binding Mark}" FontSize="11" Foreground="{StaticResource YellowBrush}"/>
+                                        <TextBlock Text="{Binding DayText}" FontSize="11" Style="{StaticResource Muted}"/>
+                                    </DockPanel>
+                                    <TextBlock Text="{Binding CryText}" Foreground="#FFF2F2F2" FontWeight="SemiBold" FontSize="12"/>
+                                    <TextBlock Text="{Binding CrownText}" Foreground="{StaticResource YellowBrush}" FontSize="11"
+                                               Visibility="{Binding CrownVisibility}"/>
+                                    <TextBlock Text="{Binding ItemText}" FontSize="11" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxHeight="30"/>
+                                </StackPanel>
+                            </Border>
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding State}" Value="claimed">
+                                    <Setter TargetName="Cell" Property="Opacity" Value="0.45"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding State}" Value="today">
+                                    <Setter TargetName="Cell" Property="BorderBrush" Value="{StaticResource OnlineBrush}"/>
+                                    <Setter TargetName="Cell" Property="BorderThickness" Value="2"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding State}" Value="next">
+                                    <Setter TargetName="Cell" Property="BorderBrush" Value="{StaticResource YellowBrush}"/>
+                                    <Setter TargetName="Cell" Property="BorderThickness" Value="2"/>
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </DockPanel>
+        </Border>
+
+        <DockPanel Grid.Row="2" Margin="0,14,0,0">
             <Button x:Name="PlayButton" DockPanel.Dock="Right" Content="{l:T Main.Play}" Style="{StaticResource YellowButton}"
                     FontSize="22" Padding="56,12" Click="OnPlay"/>
             <StackPanel VerticalAlignment="Center" Margin="0,0,18,0">

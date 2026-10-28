@@ -33,6 +33,7 @@ public partial class ModerationPage : UserControl, IReturnAware
         ApplyRole(me);
         PageShop.Init(_api, Status);
         PageMissions.Init(_api, Status);
+        PageRewards.Init(_api, Status);
         PageServer.Init(_api, Status, me.IsOwner);
         PageServer.PendingChanged += count => TabServer.Content = count > 0 ? $"Сервер ⚠ {count}" : "Сервер";
         PageAudit.Init(_api, Status);
@@ -58,7 +59,7 @@ public partial class ModerationPage : UserControl, IReturnAware
         _isAdmin = me.IsAdmin;
         RoleAdminButton.Visibility = me.IsOwner ? Visibility.Visible : Visibility.Collapsed;
         PageServer.SetOwner(me.IsOwner);
-        var adminTabs = new[] { TabInvites, TabAccounts, TabShop, TabAudit, TabMissions, TabServer };
+        var adminTabs = new[] { TabInvites, TabAccounts, TabShop, TabAudit, TabMissions, TabRewards, TabServer };
         foreach (var tab in adminTabs) tab.Visibility = _isAdmin ? Visibility.Visible : Visibility.Collapsed;
         // Открытая админская вкладка стала недоступна — на «Онлайн»
         if (!_isAdmin && adminTabs.Any(tab => tab.IsChecked == true)) TabOnline.IsChecked = true;
@@ -82,6 +83,7 @@ public partial class ModerationPage : UserControl, IReturnAware
             (TabComplaints, PageComplaints, PageComplaints.LoadOnceAsync),
             (TabAudit, PageAudit, PageAudit.LoadOnceAsync),
             (TabMissions, PageMissions, PageMissions.LoadOnceAsync),
+            (TabRewards, PageRewards, PageRewards.LoadOnceAsync),
             (TabServer, PageServer, PageServer.LoadOnceAsync),
         };
         foreach (var (tab, page, load) in pages)

@@ -22,11 +22,13 @@
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <StackPanel>
-                            <TextBlock Text="{Binding Name}" Foreground="#FFF2F2F2" FontWeight="SemiBold"/>
+                            <TextBlock Text="{Binding Caption}" Foreground="#FFF2F2F2" FontWeight="SemiBold"/>
                             <TextBlock Style="{StaticResource Muted}">
                                 <Run Text="{Binding GroupTitle, Mode=OneWay}"/>
                                 <Run Text="·"/>
                                 <Run Text="{Binding CategoryTitle, Mode=OneWay}"/>
+                                <Run Text="·"/>
+                                <Run Text="{Binding Name, Mode=OneWay}"/>
                             </TextBlock>
                         </StackPanel>
                     </DataTemplate>

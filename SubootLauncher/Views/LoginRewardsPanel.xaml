@@ -1,0 +1,65 @@
+<UserControl x:Class="SubootLauncher.Views.LoginRewardsPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Награды за ежедневный вход (администратор): 14 дней, в каждом — кредиты, короны и предмет -->
+    <DockPanel>
+        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button Content="Обновить" Style="{StaticResource TileButton}" Margin="0,0,6,0" Click="OnRefresh"/>
+                <Button Content="Сохранить" Style="{StaticResource YellowButton}" Click="OnSave"/>
+            </StackPanel>
+            <CheckBox x:Name="EnabledBox" Content="Начислять награды за ежедневный вход" FontWeight="SemiBold" VerticalAlignment="Center"/>
+        </DockPanel>
+        <TextBlock DockPanel.Dock="Top" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,8"
+                   Text="Серия — 14 дней подряд, день считается по Москве. Пропуск дня или конец серии — начало сначала. Игрок получает награду дня при входе в игру. Изменения masterserver применяет в течение минуты."/>
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <ItemsControl x:Name="DaysList">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Background="#FF1C1F23" Padding="10,6" Margin="0,0,0,4">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="64"/>
+                                    <ColumnDefinition Width="110"/>
+                                    <ColumnDefinition Width="110"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="150"/>
+                                    <ColumnDefinition Width="80"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="{Binding DayText}" Foreground="#FFF2F2F2" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                <StackPanel Grid.Column="1" Margin="0,0,8,0">
+                                    <TextBlock Text="кредиты" Style="{StaticResource Muted}" FontSize="11"/>
+                                    <TextBox Text="{Binding Cry, UpdateSourceTrigger=PropertyChanged}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Margin="0,0,8,0">
+                                    <TextBlock Text="короны" Style="{StaticResource Muted}" FontSize="11"/>
+                                    <TextBox Text="{Binding Crown, UpdateSourceTrigger=PropertyChanged}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="3" Margin="0,0,8,0">
+                                    <TextBlock Text="предмет" Style="{StaticResource Muted}" FontSize="11"/>
+                                    <DockPanel>
+                                        <Button DockPanel.Dock="Right" Content="✕" Style="{StaticResource TileButton}" Margin="4,0,0,0" ToolTip="Без предмета" Click="OnClearItem"/>
+                                        <Button DockPanel.Dock="Right" Content="Выбрать…" Style="{StaticResource TileButton}" Margin="4,0,0,0" Click="OnPickItem"/>
+                                        <TextBlock Text="{Binding ItemText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding ItemName}"/>
+                                    </DockPanel>
+                                </StackPanel>
+                                <StackPanel Grid.Column="4" Margin="0,0,8,0">
+                                    <TextBlock Text="как выдать" Style="{StaticResource Muted}" FontSize="11"/>
+                                    <ComboBox SelectedIndex="{Binding KindIndex}" IsEnabled="{Binding HasItem}">
+                                        <ComboBoxItem Content="на дней"/>
+                                        <ComboBoxItem Content="штук"/>
+                                        <ComboBoxItem Content="навсегда"/>
+                                    </ComboBox>
+                                </StackPanel>
+                                <StackPanel Grid.Column="5">
+                                    <TextBlock Text="число" Style="{StaticResource Muted}" FontSize="11"/>
+                                    <TextBox Text="{Binding Amount, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding AmountEnabled}"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

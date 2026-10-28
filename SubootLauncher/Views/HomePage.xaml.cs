@@ -8,6 +8,17 @@ using SubootLauncher.Views;
 
 namespace SubootLauncher.Views;
 
+/// <summary>Ячейка награды за вход: день, кредиты, короны, предмет и состояние (claimed, today, next, future).</summary>
+public record RewardCell(int Day, RewardDay Reward, string State, string Mark)
+{
+    public string DayText => Loc.T("Rewards.Day", Day);
+    public string CryText => Reward.Cry > 0 ? Loc.T("Rewards.Cry", Reward.Cry) : "";
+    public string CrownText => Loc.T("Rewards.Crown", Reward.Crown);
+    public Visibility CrownVisibility => Reward.Crown > 0 ? Visibility.Visible : Visibility.Collapsed;
+    public string ItemText => Reward.Item?.Caption ?? "";
+    public string Tooltip => string.Join("\n", new[] { CryText, Reward.Crown > 0 ? CrownText : null, Reward.Item?.Caption }.Where(s => !string.IsNullOrEmpty(s)));
+}
+
 /// <summary>Строка списка серверов: данные API, цвет точки, подпись и живой пинг (обновляются без пересоздания строки).</summary>
 public class ServerRow(ServerInfo server) : System.ComponentModel.INotifyPropertyChanged
 {
@@ -204,6 +215,8 @@ public partial class HomePage : UserControl
         ClanText.Text = profile.Clan != null ? Loc.T("Main.ClanName", profile.Clan) : "";
         ClanText.Visibility = profile.Clan != null ? Visibility.Visible : Visibility.Collapsed;
         ExperienceText.Text = Loc.T("Main.Experience", profile.Rank, experience);
+        PlayTimeText.Text = Loc.T("Main.PlayTime", profile.PlaySeconds / 3600, profile.PlaySeconds % 3600 / 60);
+        RenderRewards(profile.LoginBonus);
         MoneyText.Text = Loc.T("Main.Money", game, cry, crown);
 
         if (profile.RankProgress is { } progress)
@@ -224,6 +237,25 @@ public partial class HomePage : UserControl
             ProgressScale.ScaleX = 0;
             ProgressText.Text = "";
         }
+    }
+
+    /// <summary>Сетка наград за вход: полученные — бледные, сегодняшняя — зелёная, следующая — жёлтая.</summary>
+    private void RenderRewards(LoginBonusInfo? bonus)
+    {
+        if (bonus is not { Enabled: true } || bonus.Days.Length == 0)
+        {
+            RewardsPanel.Visibility = Visibility.Collapsed;
+            return;
+        }
+        RewardsPanel.Visibility = Visibility.Visible;
+        RewardsList.ItemsSource = bonus.Days.Select((reward, index) =>
+        {
+            if (bonus.ClaimedToday && index == bonus.Current) return new RewardCell(index + 1, reward, "today", Loc.T("Rewards.Today"));
+            if (index < bonus.Streak) return new RewardCell(index + 1, reward, "claimed", "✓");
+            if (index == bonus.Next) return new RewardCell(index + 1, reward, "next", Loc.T(bonus.ClaimedToday ? "Rewards.Tomorrow" : "Rewards.NextLogin"));
+            return new RewardCell(index + 1, reward, "future", "");
+        }).ToList();
+        RewardsStreakText.Text = Loc.T("Rewards.Streak", bonus.Streak, bonus.Days.Length);
     }
 
     private void AddDelta(long delta, string key)
