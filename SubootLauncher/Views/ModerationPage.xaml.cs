@@ -205,6 +205,7 @@ public partial class ModerationPage : UserControl, IReturnAware
         PlayerOnline.Foreground = (Brush)FindResource(p.Online != null ? "OnlineBrush" : "MutedBrush");
         PlayerBans.ItemsSource = p.Bans.Length > 0 ? p.Bans : null;
 
+        RenameBox.Text = p.Nick;
         AdminProfilePanel.Visibility = _isAdmin ? Visibility.Visible : Visibility.Collapsed;
         ExpBox.Text = p.Experience.ToString();
         GameMoneyBox.Text = p.Money.Game.ToString();
@@ -220,6 +221,28 @@ public partial class ModerationPage : UserControl, IReturnAware
         if (_player == null || PlayerMessageText.Text.Trim() == "") return;
         Status(await _api.MessageAsync(_player.Nick, PlayerMessageText.Text.Trim()));
         PlayerMessageText.Text = "";
+    });
+
+    private async void OnRename(object sender, RoutedEventArgs e) => await Run(async () =>
+    {
+        if (_player == null) return;
+        var nick = RenameBox.Text.Trim();
+        if (nick == "" || nick == _player.Nick)
+        {
+            Status("Введите новый ник", error: true);
+            return;
+        }
+        // Онлайн-игрока сервер держит в памяти: ник меняется только после его выхода
+        var online = _player.Online != null;
+        var question = online
+            ? $"{_player.Nick} сейчас в игре. Отключить его и сменить ник на «{nick}»?\nОн сможет сразу зайти снова уже с новым ником."
+            : $"Сменить ник {_player.Nick} на «{nick}»?";
+        if (!Confirm(question)) return;
+        Status(online ? "Отключаем игрока и меняем ник…" : "Меняем ник…");
+        Status(await _api.RenameAsync(_player.Nick, nick, kick: online));
+        _player = await _api.GetPlayerAsync(nick);
+        ShowPlayer();
+        await LoadPlayersAsync();
     });
 
     private async void OnKick(object sender, RoutedEventArgs e) => await Run(async () =>

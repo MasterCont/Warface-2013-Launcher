@@ -248,6 +248,10 @@ public class ApiClient
     public Task<string> MessageAsync(string nick, string text) =>
         SendForReasonAsync(HttpMethod.Post, "/v1/mod/players/" + Uri.EscapeDataString(nick) + "/message", new { text });
 
+    /// <summary>Смена ника; kick — сначала отключить онлайн-игрока (ник меняется после его выхода).</summary>
+    public Task<string> RenameAsync(string nick, string newNick, bool kick) =>
+        SendForReasonAsync(HttpMethod.Post, "/v1/mod/players/" + Uri.EscapeDataString(nick) + "/rename", new { nick = newNick, kick });
+
     public Task<string> KickAsync(string nick) =>
         SendForReasonAsync(HttpMethod.Post, "/v1/mod/players/" + Uri.EscapeDataString(nick) + "/kick", new { });
 
@@ -331,6 +335,7 @@ public class ApiClient
         ["Message delivered"] = "Сообщение доставлено",
         ["Player is offline, message will be shown at next login"] = "Игрок не в сети: сообщение покажется при входе",
         ["Player kicked"] = "Игрок исключён с сервера",
+        ["Nickname changed"] = "Ник изменён",
         ["Player banned permanently"] = "Игрок заблокирован бессрочно",
         ["Ban revoked"] = "Бан снят",
         ["Invite revoked"] = "Ключ отозван",
@@ -407,6 +412,12 @@ public class ApiClient
         _ when reason.EndsWith("' has no active ban") => "У игрока " + reason[8..^19] + " нет активного бана",
         _ when reason.StartsWith("Moderators can ban for at most") => "Модератор может банить максимум на " + reason[31..].Replace(" hours", " ч"),
         _ when reason.StartsWith("Role '") => "Недостаточно прав для этого действия",
+        "Player already has this nickname" => "У игрока уже этот ник",
+        _ when reason.StartsWith("Nickname must be") => "Ник: 4–16 символов, только кириллица или только латиница, цифры и - . _",
+        _ when reason.StartsWith("Nickname '") && reason.EndsWith("' is already taken") => "Ник " + reason[10..^18] + " уже занят",
+        _ when reason.Contains("is online: kick first") => "Игрок в сети: ник меняется только после выхода из игры",
+        _ when reason.StartsWith("Player was kicked but is still listed online") => "Игрок отключён, но сервер ещё не отпустил его — повторите через несколько секунд",
+        _ when reason.StartsWith("Cannot verify that the player is offline") => "Не удалось проверить, что игрок вышел: часть игровых каналов не отвечает",
         "Default equipment cannot be removed" => "Стандартное снаряжение удалить нельзя",
         _ when reason.EndsWith("is equipped and cannot be removed") => "Предмет надет на персонажа, удалить нельзя",
         _ when reason.StartsWith("Item ") && reason.EndsWith(" not found in the profile") => "Предмета уже нет на складе, обновите список",

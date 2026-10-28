@@ -101,6 +101,12 @@
                                 <TextBlock x:Name="PlayerInfo" TextWrapping="Wrap" Margin="0,4,0,0"/>
                                 <TextBlock x:Name="PlayerOnline" Margin="0,4,0,0"/>
 
+                                <TextBlock Text="Игровое имя (4–16 символов: только кириллица или только латиница, цифры, - . _)" Style="{StaticResource Field}" TextWrapping="Wrap"/>
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Content="Сменить ник" Style="{StaticResource TileButton}" Margin="8,0,0,0" Click="OnRename"/>
+                                    <TextBox x:Name="RenameBox" MaxLength="16"/>
+                                </DockPanel>
+
                                 <!-- Администратор: точные значения и склад -->
                                 <StackPanel x:Name="AdminProfilePanel" Visibility="Collapsed">
                                     <TextBlock Text="Опыт и деньги (точные значения)" Style="{StaticResource Field}"/>
