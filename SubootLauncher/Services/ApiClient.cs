@@ -597,6 +597,8 @@ public class ApiClient
         _ when reason.StartsWith("Moderators can ban for at most") => "Модератор может банить максимум на " + reason[31..].Replace(" hours", " ч"),
         _ when reason.StartsWith("Role '") => "Недостаточно прав для этого действия",
         _ when reason.StartsWith("Complaint ") && reason.EndsWith(" not found") => "Жалоба не найдена",
+        _ when reason.StartsWith("Moderators cannot ") => "Модератор не может наказывать сотрудников — обратитесь к администратору",
+        _ when reason.StartsWith("You cannot ") && reason.EndsWith(" yourself") => "Нельзя применить это к самому себе",
         _ when reason.StartsWith("Mission ") && reason.EndsWith(" not found") => "Миссия уже сменилась — обновите список",
         _ when reason.StartsWith("time_of_day must be") => "Время суток: Ч:ММ, например 9:06 или 20:30",
         _ when reason.StartsWith("Mission generation failed") => "Генерация миссий не удалась — подробности в журнале сервера",
