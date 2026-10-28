@@ -13,7 +13,7 @@ namespace SubootLauncher.Views;
 public partial class ModerationPage : UserControl, IReturnAware
 {
     private readonly ApiClient _api;
-    private readonly bool _isAdmin;
+    private bool _isAdmin;
     private PlayerDetails? _player;
     private string _search = "";
     private int _page = 1;
@@ -30,16 +30,8 @@ public partial class ModerationPage : UserControl, IReturnAware
     {
         InitializeComponent();
         _api = new ApiClient { StaffSession = session };
-        _isAdmin = me.IsAdmin;
-        // Назначать админов может только главный администратор
-        RoleAdminButton.Visibility = me.IsOwner ? Visibility.Visible : Visibility.Collapsed;
-        TabInvites.Visibility = _isAdmin ? Visibility.Visible : Visibility.Collapsed;
-        TabAccounts.Visibility = _isAdmin ? Visibility.Visible : Visibility.Collapsed;
-        TabShop.Visibility = _isAdmin ? Visibility.Visible : Visibility.Collapsed;
+        ApplyRole(me);
         PageShop.Init(_api, Status);
-        TabAudit.Visibility = _isAdmin ? Visibility.Visible : Visibility.Collapsed;
-        TabMissions.Visibility = _isAdmin ? Visibility.Visible : Visibility.Collapsed;
-        TabServer.Visibility = _isAdmin ? Visibility.Visible : Visibility.Collapsed;
         PageMissions.Init(_api, Status);
         PageServer.Init(_api, Status);
         PageAudit.Init(_api, Status);
@@ -53,6 +45,21 @@ public partial class ModerationPage : UserControl, IReturnAware
             await Run(LoadOnlineAsync);
             await Run(PageComplaints.LoadCountAsync); // счётчик новых жалоб на вкладке
         };
+    }
+
+    /// <summary>
+    /// Разделы под роль: админские вкладки и блоки карточки игрока видны только администратору,
+    /// кнопка «Админ» — только главному. Вызывается и при смене роли, пока страница открыта.
+    /// </summary>
+    public void ApplyRole(AccountInfo me)
+    {
+        _isAdmin = me.IsAdmin;
+        RoleAdminButton.Visibility = me.IsOwner ? Visibility.Visible : Visibility.Collapsed;
+        var adminTabs = new[] { TabInvites, TabAccounts, TabShop, TabAudit, TabMissions, TabServer };
+        foreach (var tab in adminTabs) tab.Visibility = _isAdmin ? Visibility.Visible : Visibility.Collapsed;
+        // Открытая админская вкладка стала недоступна — на «Онлайн»
+        if (!_isAdmin && adminTabs.Any(tab => tab.IsChecked == true)) TabOnline.IsChecked = true;
+        if (_player != null) ShowPlayer();
     }
 
     // --- Общее ---

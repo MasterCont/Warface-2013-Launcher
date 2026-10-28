@@ -100,9 +100,11 @@ public partial class ShellWindow : Window
                 ShowHome(session, me);
                 return;
             }
-            if (me.Role != _me.Role) Log.Write($"Роль {me.Login}: {_me.Role} -> {me.Role}");
+            var roleChanged = me.Role != _me.Role;
+            if (roleChanged) Log.Write($"Роль {me.Login}: {_me.Role} -> {me.Role}");
             _me = me;
             UpdateHeader();
+            if (roleChanged) ApplyRole(me);
         }
         catch (ApiException error) when (error.Code == 401)
         {
@@ -136,6 +138,39 @@ public partial class ShellWindow : Window
     }
 
     /// <summary>После выхода: к другим сохранённым учётным записям или ко входу.</summary>
+    /// <summary>
+    /// Роль сменилась, пока лаунчер открыт: модерация перестраивается под новые права, страницы,
+    /// на которые прав больше нет (модерация целиком или склад, достижения, выбор предмета), закрываются.
+    /// </summary>
+    private void ApplyRole(AccountInfo me)
+    {
+        var moderation = _current.Page as ModerationPage ?? _back.Select(entry => entry.Page).OfType<ModerationPage>().FirstOrDefault();
+        if (moderation == null) return;
+        if (!me.IsStaff)
+        {
+            ShowHome(_session!, me); // прав на модерацию больше нет — на главную
+            return;
+        }
+        // Админские страницы поверх модерации (склад, достижения, выбор предмета) — закрываем при понижении
+        if (!me.IsAdmin)
+        {
+            while (_current.Page is not ModerationPage && _back.Count > 0) Back();
+        }
+        moderation.ApplyRole(me);
+        var title = ModerationTitle(me);
+        if (_current.Page == moderation) PageTitle.Text = title;
+        var entries = _back.Reverse().Select(entry => entry.Page == moderation ? (entry.Page, title) : entry).ToList();
+        _back.Clear();
+        entries.ForEach(entry => _back.Push(entry));
+        if (_current.Page == moderation) _current = (moderation, title);
+    }
+
+    private static string ModerationTitle(AccountInfo me)
+    {
+        var role = me.Role switch { "owner" => "главный администратор", "admin" => "администратор", _ => "модератор" };
+        return $"Модерация — {me.Login} ({role})";
+    }
+
     public void AfterLogout()
     {
         _accountWatch.Stop();
@@ -285,8 +320,7 @@ public partial class ShellWindow : Window
             while (_current.Page is not ModerationPage && _back.Count > 0) Back();
             return;
         }
-        var role = _me.Role switch { "owner" => "главный администратор", "admin" => "администратор", _ => "модератор" };
-        Navigate(new ModerationPage(_session, _me), $"Модерация — {_me.Login} ({role})");
+        Navigate(new ModerationPage(_session, _me), ModerationTitle(_me));
     }
 
     // Выход завершает сессию и убирает учётную запись из сохранённых
