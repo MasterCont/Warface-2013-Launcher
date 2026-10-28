@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Threading;
 using SubootLauncher.Services;
 using SubootLauncher.Views;
 
@@ -23,9 +24,20 @@ public partial class ShellWindow : Window
     private string? _session;
     private AccountInfo? _me;
 
+    // Слежение за аккаунтом, пока лаунчер открыт: бан, снятие бана, смена роли, завершённая сессия
+    private readonly DispatcherTimer _accountWatch = new() { Interval = TimeSpan.FromSeconds(30) };
+    private DateTime _lastCheck = DateTime.MinValue;
+    private bool _checking;
+
     public ShellWindow()
     {
         InitializeComponent();
+        _accountWatch.Tick += async (_, _) => await CheckAccountAsync();
+        // Вернулись в окно лаунчера — проверяем сразу (но не чаще раза в 10 секунд)
+        Activated += async (_, _) =>
+        {
+            if (DateTime.UtcNow - _lastCheck > TimeSpan.FromSeconds(10)) await CheckAccountAsync();
+        };
         PreviewKeyDown += (_, e) =>
         {
             if (e.Key == Key.Escape && _back.Count > 0 && !IsTextInputFocused())
@@ -49,6 +61,7 @@ public partial class ShellWindow : Window
 
     public void ShowLogin()
     {
+        _accountWatch.Stop();
         _session = null;
         _me = null;
         UpdateHeader();
@@ -60,8 +73,53 @@ public partial class ShellWindow : Window
     {
         _session = session;
         _me = me;
+        _lastCheck = DateTime.UtcNow;
+        _accountWatch.Start();
         UpdateHeader();
         SetRoot(me.Ban != null ? new BannedPage(session, me) : new HomePage(session, me));
+    }
+
+    /// <summary>
+    /// Проверка аккаунта на сервере. Появился бан — страница блокировки (с любой страницы, в том числе модерации);
+    /// бан закончился — главная; сменилась роль — шапка; сессия завершена — выход.
+    /// </summary>
+    private async Task CheckAccountAsync()
+    {
+        if (_session == null || _me == null || _checking) return;
+        _checking = true;
+        _lastCheck = DateTime.UtcNow;
+        var session = _session;
+        try
+        {
+            var me = await App.Api.GetMeAsync(session);
+            if (session != _session) return; // пока ждали ответа, переключились на другую учётную запись
+            var banChanged = (me.Ban == null) != (_me.Ban == null) || me.Ban?.Id != _me.Ban?.Id;
+            if (banChanged)
+            {
+                Log.Write(me.Ban != null ? $"Аккаунт {me.Login} заблокирован (бан #{me.Ban.Id})" : $"Бан аккаунта {me.Login} снят");
+                ShowHome(session, me);
+                return;
+            }
+            if (me.Role != _me.Role) Log.Write($"Роль {me.Login}: {_me.Role} -> {me.Role}");
+            _me = me;
+            UpdateHeader();
+        }
+        catch (ApiException error) when (error.Code == 401)
+        {
+            if (session != _session) return;
+            Log.Write($"Сессия {_me.Login} завершена на сервере");
+            AccountStore.Remove(_me.Login);
+            MessageBox.Show(this, error.Message, Loc.T("Main.LoginTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
+            AfterLogout();
+        }
+        catch (ApiException)
+        {
+            // Сервер временно недоступен — проверим в следующий раз
+        }
+        finally
+        {
+            _checking = false;
+        }
     }
 
     /// <summary>Переключатель учётных записей: поверх текущей страницы или корнем, если вход не выполнен.</summary>
@@ -80,6 +138,7 @@ public partial class ShellWindow : Window
     /// <summary>После выхода: к другим сохранённым учётным записям или ко входу.</summary>
     public void AfterLogout()
     {
+        _accountWatch.Stop();
         _session = null;
         _me = null;
         if (AccountStore.All.Count > 0) ShowAccounts();
