@@ -148,6 +148,9 @@
                                         <Button Content="Сохранить доступ" Style="{StaticResource TileButton}" Click="OnSaveMissionAccess"/>
                                     </WrapPanel>
                                     <TextBlock x:Name="AccessHint" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+
+                                    <TextBlock Text="Опасная зона" Style="{StaticResource Field}" Foreground="{StaticResource ErrorBrush}"/>
+                                    <Button Content="Сбросить прогресс…" Style="{StaticResource TileButton}" HorizontalAlignment="Left" Click="OnResetPlayer"/>
                                 </StackPanel>
 
                                 <TextBlock Text="Сообщение игроку" Style="{StaticResource Field}"/>

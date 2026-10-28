@@ -33,7 +33,8 @@ public partial class ModerationPage : UserControl, IReturnAware
         ApplyRole(me);
         PageShop.Init(_api, Status);
         PageMissions.Init(_api, Status);
-        PageServer.Init(_api, Status);
+        PageServer.Init(_api, Status, me.IsOwner);
+        PageServer.PendingChanged += count => TabServer.Content = count > 0 ? $"Сервер ⚠ {count}" : "Сервер";
         PageAudit.Init(_api, Status);
         PageComplaints.Init(_api, Status, OpenPlayerFromElsewhere);
         PageComplaints.NewCountChanged += count => TabComplaints.Content = count > 0 ? $"Жалобы ({count})" : "Жалобы";
@@ -44,6 +45,7 @@ public partial class ModerationPage : UserControl, IReturnAware
             _onlineLoaded = true;
             await Run(LoadOnlineAsync);
             await Run(PageComplaints.LoadCountAsync); // счётчик новых жалоб на вкладке
+            if (_isAdmin) await Run(PageServer.LoadPendingCountAsync); // запланированные сбросы — на вкладке «Сервер»
         };
     }
 
@@ -55,6 +57,7 @@ public partial class ModerationPage : UserControl, IReturnAware
     {
         _isAdmin = me.IsAdmin;
         RoleAdminButton.Visibility = me.IsOwner ? Visibility.Visible : Visibility.Collapsed;
+        PageServer.SetOwner(me.IsOwner);
         var adminTabs = new[] { TabInvites, TabAccounts, TabShop, TabAudit, TabMissions, TabServer };
         foreach (var tab in adminTabs) tab.Visibility = _isAdmin ? Visibility.Visible : Visibility.Collapsed;
         // Открытая админская вкладка стала недоступна — на «Онлайн»
@@ -385,6 +388,27 @@ public partial class ModerationPage : UserControl, IReturnAware
         if (!Confirm($"Изменить доступ {_player.Nick} к PvE?\n\n{text}")) return;
         Status(await _api.SetMissionAccessAsync(_player.Nick, changes));
         await RefreshPlayerAsync();
+    });
+
+    // Сброс прогресса: два предупреждения, ввод ника вручную, выполнение через 5 минут с возможностью отмены
+    private async void OnResetPlayer(object sender, RoutedEventArgs e) => await Run(async () =>
+    {
+        if (_player == null) return;
+        var nick = _player.Nick;
+        if (MessageBox.Show(App.Shell,
+                $"Сбросить ВЕСЬ прогресс игрока {nick}?\n\n"
+                + "Обнулятся: опыт и звание, деньги (до стартовых), все предметы кроме стандартного снаряжения, достижения, "
+                + "статистика, контракты, поставщики, прогресс PvE и обучения, рейтинг, очки клана.\n"
+                + "Останутся: логин и пароль, ник, друзья, клан, баны.\n\n"
+                + "Перед сбросом сервер сделает резервную копию базы.",
+                "Сброс прогресса — шаг 1 из 2", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
+        if (!TypeConfirmWindow.Ask(App.Shell, "Сброс прогресса — шаг 2 из 2",
+                $"Сброс выполнится через 5 минут. До этого его может отменить любой администратор на вкладке «Сервер». "
+                + "Игрок получит сообщение, а в момент сброса будет отключён от игры.",
+                nick, "Запланировать сброс")) return;
+        var reset = await _api.ScheduleResetAsync(nick, nick);
+        Status($"Сброс {nick} запланирован (#{reset.Id}) на {reset.ExecuteAt.ToLocalTime():HH:mm:ss} — отменить можно на вкладке «Сервер»", error: true);
+        _ = Run(PageServer.LoadPendingCountAsync);
     });
 
     private void OnStorage(object sender, RoutedEventArgs e)

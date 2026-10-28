@@ -289,6 +289,39 @@ public record ComponentState(string Name, string State, string? Channel, int? Mi
 
 public record ServerStatus(int? Online, ComponentState[] Components, ComponentState[] Channels, ComponentState[]? Dedicated);
 
+/// <summary>Запланированный или выполненный сброс прогресса.</summary>
+public record ResetInfo(long Id, string Scope, string? TargetUid, string? TargetNick, string RequestedBy, DateTime CreatedAt,
+    DateTime ExecuteAt, string Status, string? CancelledBy, DateTime? FinishedAt, string? Result)
+{
+    public bool IsPending => Status == "pending";
+
+    public string Title => (Scope == "all" ? "ВСЕ аккаунты" : TargetNick ?? TargetUid ?? "?") + " · " + Status switch
+    {
+        "pending" => "через " + Left,
+        "running" => "выполняется…",
+        "done" => "выполнен",
+        "cancelled" => "отменён",
+        "failed" => "не выполнен",
+        _ => Status,
+    };
+
+    private string Left
+    {
+        get
+        {
+            var span = ExecuteAt - DateTime.UtcNow;
+            return span <= TimeSpan.Zero ? "несколько секунд" : $"{(int)span.TotalMinutes}:{span.Seconds:00}";
+        }
+    }
+
+    public string Details => $"#{Id} · запросил {RequestedBy} · {CreatedAt.ToLocalTime():dd.MM HH:mm}"
+        + (IsPending ? $" · выполнится в {ExecuteAt.ToLocalTime():HH:mm:ss}" : "")
+        + (CancelledBy != null ? $" · отменил {CancelledBy}" : "")
+        + (!string.IsNullOrEmpty(Result) ? $" · {Result}" : "");
+}
+
+public record ResetsData(int DelayMinutes, ResetInfo[] Resets);
+
 /// <summary>Ошибка API с понятным игроку текстом.</summary>
 public class ApiException(string message, int code) : Exception(message)
 {
@@ -500,6 +533,18 @@ public class ApiClient
 
     public Task<string> BackupAsync() => SendForReasonAsync(HttpMethod.Post, "/v1/admin/backup", new { });
 
+    // --- Сброс прогресса (админ; всех — главный админ) ---
+
+    public Task<ResetInfo> ScheduleResetAsync(string nick, string confirm) =>
+        SendAsync<ResetInfo>(HttpMethod.Post, PlayerPath(nick) + "/reset", new { confirm });
+
+    public Task<ResetInfo> ScheduleResetAllAsync(string confirm) =>
+        SendAsync<ResetInfo>(HttpMethod.Post, "/v1/admin/resets/all", new { confirm });
+
+    public Task<ResetsData> GetResetsAsync() => SendAsync<ResetsData>(HttpMethod.Get, "/v1/admin/resets");
+
+    public Task<string> CancelResetAsync(long id) => SendForReasonAsync(HttpMethod.Delete, "/v1/admin/resets/" + id);
+
     public Task<ItemsPage> GetItemsAsync(string search, string? group, int page) =>
         SendAsync<ItemsPage>(HttpMethod.Get, $"/v1/admin/items?page={page}&search={Uri.EscapeDataString(search)}" + (group != null ? "&group=" + group : ""));
 
@@ -511,6 +556,7 @@ public class ApiClient
         ["Player kicked"] = "Игрок исключён с сервера",
         ["Nickname changed"] = "Ник изменён",
         ["Complaint updated"] = "Жалоба обновлена",
+        ["Reset cancelled"] = "Сброс отменён",
         ["Mission updated"] = "Миссия изменена — игроки увидят через ~10 с",
         ["Mission removed"] = "Миссия убрана до следующей генерации",
         ["Missions regenerated"] = "Миссии сгенерированы заново — игроки увидят через ~10 с",
@@ -602,6 +648,11 @@ public class ApiClient
         _ when reason.StartsWith("Moderators can ban for at most") => "Модератор может банить максимум на " + reason[31..].Replace(" hours", " ч"),
         _ when reason.StartsWith("Role '") => "Недостаточно прав для этого действия",
         _ when reason.StartsWith("Complaint ") && reason.EndsWith(" not found") => "Жалоба не найдена",
+        _ when reason.StartsWith("Confirmation does not match") => "Подтверждение не совпало — сброс не запланирован",
+        _ when reason.StartsWith("A reset of this player is already scheduled") => "Сброс этого игрока уже запланирован — см. вкладку «Сервер»",
+        _ when reason.StartsWith("A reset of all accounts is already scheduled") => "Сброс всех аккаунтов уже запланирован — см. вкладку «Сервер»",
+        "Only the owner can reset all accounts" => "Сбросить все аккаунты может только главный администратор",
+        _ when reason.StartsWith("Reset ") && reason.Contains(" is not pending") => "Этот сброс уже выполнен, выполняется или отменён",
         _ when reason.StartsWith("Moderators cannot ") => "Модератор не может наказывать сотрудников — обратитесь к администратору",
         _ when reason.EndsWith("a member with an equal or higher role") => "Нельзя: у этого сотрудника такая же или более высокая роль",
         "The owner role is assigned only from the server terminal" => "Главного администратора назначают только из терминала сервера",

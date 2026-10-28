@@ -43,6 +43,38 @@
             <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,4,0,8"
                        Text="Копия всей базы в /var/backups/warface. Автоматически делается каждую ночь в 04:30 и перед каждым обновлением сервера."/>
             <Button Content="Сделать копию сейчас" Style="{StaticResource TileButton}" HorizontalAlignment="Left" Click="OnBackup"/>
+
+            <TextBlock Text="Сброс прогресса" Style="{StaticResource Title}" Margin="0,18,0,0" Foreground="{StaticResource ErrorBrush}"/>
+            <TextBlock x:Name="ResetsHint" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,4,0,8"
+                       Text="Запланированные сбросы выполняются через 5 минут; до этого любой администратор может их отменить."/>
+            <ItemsControl x:Name="ResetsList">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Background="#FF1C1F23" Padding="10,7" Margin="0,0,0,4">
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Content="Отменить" VerticalAlignment="Center"
+                                        Margin="8,0,0,0" Tag="{Binding Id}" Click="OnCancelReset">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource YellowButton}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsPending}" Value="False">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Title}" Foreground="#FFF2F2F2" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{Binding Details}" Style="{StaticResource Muted}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Button x:Name="ResetAllButton" Content="Сбросить ВСЕ аккаунты (вайп)…" Style="{StaticResource TileButton}"
+                    HorizontalAlignment="Left" Margin="0,8,0,0" Visibility="Collapsed" Click="OnResetAll"/>
         </StackPanel>
     </Grid>
 </UserControl>
