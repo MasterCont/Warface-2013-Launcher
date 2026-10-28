@@ -1,4 +1,6 @@
-﻿using System.Windows;
+﻿using System.Diagnostics;
+using System.Threading;
+using System.Windows;
 using SubootLauncher.Services;
 using SubootLauncher.Views;
 
@@ -6,25 +8,40 @@ namespace SubootLauncher;
 
 /// <summary>
 /// Точка входа: если сессия сохранена и ещё действует — сразу главное окно, иначе окно входа.
+/// Лаунчер запускается в одном экземпляре: повторный запуск показывает уже открытое окно.
 /// </summary>
 public partial class App : Application
 {
     public static ApiClient Api { get; } = new();
     public static Settings Settings { get; } = Settings.Load();
 
-    /// <summary>Оформления: ключ → название и файл темы.</summary>
-    public static readonly Dictionary<string, (string Name, string File)> Themes = new()
+    /// <summary>Оформления: ключ → файл темы (название — Loc «Theme.{ключ}»).</summary>
+    public static readonly Dictionary<string, string> Themes = new()
     {
-        ["classic"] = ("Сайт 2013", "Themes/Classic.xaml"),
-        ["game"] = ("Как в игре", "Themes/Game.xaml"),
+        ["classic"] = "Themes/Classic.xaml",
+        ["game"] = "Themes/Game.xaml",
     };
+
+    // Имена в пределах сеанса пользователя: у каждого пользователя Windows свой лаунчер
+    private const string MutexName = @"Local\SubootLauncher.Instance";
+    private const string ShowEventName = @"Local\SubootLauncher.Show";
+    private const string RestartArgument = "--restart";
+
+    private static Mutex? _instance;
+    private static EventWaitHandle? _showEvent;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
-        var theme = Themes.GetValueOrDefault(Settings.Theme ?? "classic", Themes["classic"]);
-        Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri(theme.File, UriKind.Relative) });
-        // Общие для обеих тем стили (списки и поля панелей) — после темы, они ссылаются на её кисти
+        if (!TakeInstance(e.Args.Contains(RestartArgument)))
+        {
+            Shutdown();
+            return;
+        }
+
+        Loc.Init(Settings.Language);
+        Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri(Themes.GetValueOrDefault(Settings.Theme ?? "classic", Themes["classic"]), UriKind.Relative) });
+        // Общие для обеих тем стили (списки, поля, логотип) — после темы, они ссылаются на её кисти
         Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("Themes/Shared.xaml", UriKind.Relative) });
 
         var session = Settings.LoadSession();
@@ -46,6 +63,67 @@ public partial class App : Application
             }
         }
         ShowLogin();
+    }
+
+    /// <summary>
+    /// Первый экземпляр забирает mutex и ждёт сигнала «покажись». Второй подаёт сигнал и выходит.
+    /// При перезапуске (смена языка или оформления) новый экземпляр ждёт, пока старый закроется.
+    /// </summary>
+    private static bool TakeInstance(bool restarting)
+    {
+        _instance = new Mutex(false, MutexName);
+        bool owned;
+        try
+        {
+            owned = _instance.WaitOne(restarting ? TimeSpan.FromSeconds(10) : TimeSpan.Zero);
+        }
+        catch (AbandonedMutexException)
+        {
+            owned = true; // прошлый экземпляр упал, не освободив mutex
+        }
+
+        _showEvent = new EventWaitHandle(false, EventResetMode.AutoReset, ShowEventName);
+        if (!owned)
+        {
+            _showEvent.Set();
+            return false;
+        }
+
+        var thread = new Thread(() =>
+        {
+            while (_showEvent.WaitOne())
+            {
+                Current?.Dispatcher.BeginInvoke(BringToFront);
+            }
+        }) { IsBackground = true };
+        thread.Start();
+        return true;
+    }
+
+    private static void BringToFront()
+    {
+        var window = Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsVisible && w.Owner == null);
+        if (window == null) return;
+        if (window.WindowState == WindowState.Minimized) window.WindowState = WindowState.Normal;
+        window.Activate();
+        // Activate не всегда выводит окно поверх чужих: на мгновение делаем его «поверх всех»
+        window.Topmost = true;
+        window.Topmost = false;
+        window.Focus();
+    }
+
+    /// <summary>Перезапуск для применения языка и оформления: сессия сохранена, вход не нужен.</summary>
+    public static void Restart()
+    {
+        Process.Start(new ProcessStartInfo(Environment.ProcessPath!, RestartArgument) { UseShellExecute = false });
+        Current.Shutdown();
+    }
+
+    protected override void OnExit(ExitEventArgs e)
+    {
+        try { _instance?.ReleaseMutex(); } catch (ApplicationException) { /* не владели */ }
+        _instance?.Dispose();
+        base.OnExit(e);
     }
 
     public static void ShowLogin()

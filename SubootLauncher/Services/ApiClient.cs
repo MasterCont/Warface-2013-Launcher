@@ -354,6 +354,7 @@ public class ApiClient
     private async Task<string> SendForReasonAsync(HttpMethod method, string path, object? body = null)
     {
         var reason = await SendAsync<string>(method, path, body, reasonOnly: true);
+        if (Loc.English) return reason;
         if (Results.TryGetValue(reason, out var translated)) return translated;
         if (reason.StartsWith("Player banned for ")) return "Игрок заблокирован на " + reason["Player banned for ".Length..].Replace("hours", "ч");
         // Правки онлайн-игрока и пересборка магазина: «<результат>: <пояснение>»
@@ -380,7 +381,7 @@ public class ApiClient
         }
         catch (Exception)
         {
-            throw new ApiException("Сервер недоступен. Проверьте интернет и попробуйте ещё раз", 0);
+            throw new ApiException(Loc.T("Api.Unreachable"), 0);
         }
 
         using var document = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
@@ -389,6 +390,7 @@ public class ApiClient
         if (code >= 400)
         {
             var reason = root.TryGetProperty("reason", out var r) ? r.GetString() ?? "" : "";
+            if (Loc.English) throw new ApiException(reason == "" ? Loc.T("Api.Error") : reason, code);
             throw new ApiException(Reasons.GetValueOrDefault(reason, Translate(reason)), code);
         }
         if (reasonOnly) return (T)(object)(root.GetProperty("reason").GetString() ?? "");

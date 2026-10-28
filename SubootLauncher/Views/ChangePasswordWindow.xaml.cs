@@ -23,7 +23,7 @@ public partial class ChangePasswordWindow : Window
         ErrorText.Visibility = Visibility.Collapsed;
         if (NewBox.Password != RepeatBox.Password)
         {
-            ShowError("Новые пароли не совпадают");
+            ShowError(Loc.T("Password.Mismatch"));
             return;
         }
 
@@ -33,7 +33,7 @@ public partial class ChangePasswordWindow : Window
             await App.Api.ChangePasswordAsync(_login, OldBox.Password, NewBox.Password);
             var session = await App.Api.LoginAsync(_login, NewBox.Password, remember: true);
             if (Settings.LoadSession() != null) Settings.SaveSession(session.Session!);
-            MessageBox.Show(this, "Пароль изменён. Перезапустите лаунчер, чтобы продолжить с новой сессией.", "Смена пароля");
+            MessageBox.Show(this, Loc.T("Password.Done"), Loc.T("Password.Title"));
             Close();
         }
         catch (ApiException error)

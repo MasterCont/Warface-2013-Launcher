@@ -22,7 +22,7 @@ public partial class LoginWindow : Window
         HideError();
         SubmitButton.IsEnabled = true;
         RepeatPanel.Visibility = IsRegister ? Visibility.Visible : Visibility.Collapsed;
-        SubmitButton.Content = IsRegister ? "Зарегистрироваться" : "Войти";
+        SubmitButton.Content = Loc.T(IsRegister ? "Login.SubmitRegister" : "Login.Submit");
         InvitePanel.Visibility = Visibility.Collapsed;
         if (!IsRegister) return;
 
@@ -31,7 +31,7 @@ public partial class LoginWindow : Window
             var mode = await App.Api.GetRegistrationModeAsync();
             if (mode == "closed")
             {
-                ShowError("Регистрация закрыта: аккаунт выдаёт администратор");
+                ShowError(Loc.T("Login.Closed"));
                 SubmitButton.IsEnabled = false;
                 return;
             }
@@ -50,12 +50,12 @@ public partial class LoginWindow : Window
         var password = PasswordBox.Password;
         if (login == "" || password == "")
         {
-            ShowError("Введите логин и пароль");
+            ShowError(Loc.T("Login.Empty"));
             return;
         }
         if (IsRegister && password != RepeatBox.Password)
         {
-            ShowError("Пароли не совпадают");
+            ShowError(Loc.T("Login.Mismatch"));
             return;
         }
 
@@ -84,6 +84,8 @@ public partial class LoginWindow : Window
             SubmitButton.IsEnabled = true;
         }
     }
+
+    private void OnSettings(object sender, RoutedEventArgs e) => new SettingsWindow { Owner = this }.ShowDialog();
 
     private void ShowError(string text)
     {

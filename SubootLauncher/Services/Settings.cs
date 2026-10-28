@@ -19,6 +19,8 @@ public class Settings
     public string? ServerId { get; set; }
     /// <summary>Оформление: classic (сайт 2013, по умолчанию) или game (как в игре).</summary>
     public string? Theme { get; set; }
+    /// <summary>Язык интерфейса: ru (по умолчанию) или en.</summary>
+    public string? Language { get; set; }
 
     public static Settings Load()
     {

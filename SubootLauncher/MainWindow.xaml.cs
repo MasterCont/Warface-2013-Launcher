@@ -1,5 +1,6 @@
 ﻿using System.Windows;
 using System.Windows.Media;
+using System.Windows.Threading;
 using Microsoft.Win32;
 using SubootLauncher.Services;
 using SubootLauncher.Views;
@@ -13,10 +14,10 @@ public record ServerRow(ServerInfo Server)
 
     public string Details => Server.State switch
     {
-        "online" => "работает",
-        "degraded" => "работает частично",
-        _ => "недоступен",
-    } + (Server.Online is { } online ? $" · игроков: {online}" : "") + $"\n{Server.Host}";
+        "online" => Loc.T("Server.Online"),
+        "degraded" => Loc.T("Server.Degraded"),
+        _ => Loc.T("Server.Offline"),
+    } + (Server.Online is { } online ? Loc.T("Server.Players", online) : "") + $"\n{Server.Host}";
 
     public Brush StateBrush => (Brush)Application.Current.Resources[Server.State switch
     {
@@ -32,6 +33,10 @@ public partial class MainWindow : Window
     private readonly string _session;
     private AccountInfo _me;
 
+    // Пока Game.exe из папки игры работает (запущен нами или через Start.bat), «Играть» заблокирована
+    private readonly DispatcherTimer _gameWatch = new() { Interval = TimeSpan.FromSeconds(2) };
+    private bool _starting;
+
     public bool LoggedOut { get; private set; }
 
     public MainWindow(string session, AccountInfo me)
@@ -43,13 +48,30 @@ public partial class MainWindow : Window
         App.Settings.GamePath ??= GameLauncher.Detect();
         ShowAccount();
         ShowGamePath();
+        _gameWatch.Tick += (_, _) => UpdatePlayButton();
+        _gameWatch.Start();
+        UpdatePlayButton();
+        Closed += (_, _) => _gameWatch.Stop();
         Loaded += async (_, _) => await LoadServersAsync();
+    }
+
+    private void UpdatePlayButton()
+    {
+        var running = GameLauncher.IsRunning(App.Settings.GamePath);
+        PlayButton.IsEnabled = !running && !_starting;
+        PlayButton.Content = Loc.T(running ? "Main.Running" : "Main.Play");
+        if (running && StatusText.Text == Loc.T("Main.Starting")) StatusText.Text = "";
     }
 
     private void ShowAccount()
     {
         AccountLogin.Text = _me.Login;
-        AccountRole.Text = _me.Role switch { "admin" => "администратор", "moderator" => "модератор", _ => $"uid {_me.Uid}" };
+        AccountRole.Text = _me.Role switch
+        {
+            "admin" => Loc.T("Main.RoleAdmin"),
+            "moderator" => Loc.T("Main.RoleModerator"),
+            _ => Loc.T("Main.Uid", _me.Uid),
+        };
         StaffButton.Visibility = _me.IsStaff ? Visibility.Visible : Visibility.Collapsed;
 
         if (_me.Profile is { } profile)
@@ -58,8 +80,8 @@ public partial class MainWindow : Window
             NoProfileText.Visibility = Visibility.Collapsed;
             RankText.Text = profile.Rank.ToString();
             NickText.Text = profile.Nick;
-            ExperienceText.Text = $"Звание {profile.Rank} · опыт {profile.Experience:N0}" + (profile.Clan != null ? $" · клан {profile.Clan}" : "");
-            MoneyText.Text = $"Варбаксы {profile.Money.Game:N0}    Кредиты {profile.Money.Cry:N0}    Короны {profile.Money.Crown:N0}";
+            ExperienceText.Text = Loc.T("Main.Experience", profile.Rank, profile.Experience) + (profile.Clan != null ? Loc.T("Main.Clan", profile.Clan) : "");
+            MoneyText.Text = Loc.T("Main.Money", profile.Money.Game, profile.Money.Cry, profile.Money.Crown);
         }
         else
         {
@@ -71,7 +93,7 @@ public partial class MainWindow : Window
     private void ShowGamePath()
     {
         var path = App.Settings.GamePath;
-        GamePathText.Text = GameLauncher.IsGameFolder(path) ? path! : "не выбрана — укажите папку с Bin32Release\\Game.exe";
+        GamePathText.Text = GameLauncher.IsGameFolder(path) ? path! : Loc.T("Main.NoFolder");
     }
 
     private async Task LoadServersAsync()
@@ -117,17 +139,18 @@ public partial class MainWindow : Window
 
     private void OnChooseFolder(object sender, RoutedEventArgs e)
     {
-        var dialog = new OpenFolderDialog { Title = "Папка игры (в ней Bin32Release, Game, Engine)" };
+        var dialog = new OpenFolderDialog { Title = Loc.T("Main.FolderDialog") };
         if (dialog.ShowDialog(this) != true) return;
         if (!GameLauncher.IsGameFolder(dialog.FolderName))
         {
-            StatusText.Text = "В этой папке нет Bin32Release\\Game.exe";
+            StatusText.Text = Loc.T("Main.NotGameFolder");
             return;
         }
         App.Settings.GamePath = dialog.FolderName;
         App.Settings.Save();
         StatusText.Text = "";
         ShowGamePath();
+        UpdatePlayButton();
     }
 
     private async void OnPlay(object sender, RoutedEventArgs e)
@@ -136,53 +159,50 @@ public partial class MainWindow : Window
         var path = App.Settings.GamePath;
         if (!GameLauncher.IsGameFolder(path))
         {
-            StatusText.Text = "Сначала выберите папку игры";
+            StatusText.Text = Loc.T("Main.ChooseFolderFirst");
+            return;
+        }
+        if (GameLauncher.IsRunning(path))
+        {
+            StatusText.Text = Loc.T("Main.AlreadyRunning");
+            UpdatePlayButton();
             return;
         }
         var server = (ServerList.SelectedItem as ServerRow)?.Server;
         if (server?.State == "offline")
         {
-            StatusText.Text = $"Сервер {server.Name} сейчас недоступен";
+            StatusText.Text = Loc.T("Main.ServerOffline", server.Name);
             return;
         }
 
-        PlayButton.IsEnabled = false;
+        // Блокируем сразу: пока получаем токен и Game.exe не появился, второй щелчок не запустит вторую копию
+        _starting = true;
+        UpdatePlayButton();
         try
         {
             var session = await App.Api.LoginBySessionAsync(_session);
             GameLauncher.Start(path!, session, server);
-            StatusText.Text = "Игра запускается…";
-            await Task.Delay(5000);
-            StatusText.Text = "";
+            StatusText.Text = Loc.T("Main.Starting");
+            await Task.Delay(3000);
         }
         catch (ApiException error) when (error.Code == 401)
         {
             Settings.ForgetSession();
-            MessageBox.Show(this, error.Message, "Вход", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(this, error.Message, Loc.T("Main.LoginTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
             OnLogout(sender, e);
         }
         catch (Exception error)
         {
-            StatusText.Text = error is ApiException ? error.Message : "Не удалось запустить игру: " + error.Message;
+            StatusText.Text = error is ApiException ? error.Message : Loc.T("Main.StartFailed", error.Message);
         }
         finally
         {
-            PlayButton.IsEnabled = true;
+            _starting = false;
+            UpdatePlayButton();
         }
     }
 
-    /// <summary>Переключение оформления: сохраняем выбор и перезапускаем лаунчер (сессия сохранена — вход не нужен).</summary>
-    private void OnTheme(object sender, RoutedEventArgs e)
-    {
-        var next = App.Settings.Theme == "game" ? "classic" : "game";
-        var answer = MessageBox.Show(this, $"Переключить оформление на «{App.Themes[next].Name}»? Лаунчер перезапустится.",
-            "Оформление", MessageBoxButton.OKCancel, MessageBoxImage.Question);
-        if (answer != MessageBoxResult.OK) return;
-        App.Settings.Theme = next;
-        App.Settings.Save();
-        System.Diagnostics.Process.Start(Environment.ProcessPath!);
-        Application.Current.Shutdown();
-    }
+    private void OnSettings(object sender, RoutedEventArgs e) => new SettingsWindow { Owner = this }.ShowDialog();
 
     private void OnChangePassword(object sender, RoutedEventArgs e)
     {

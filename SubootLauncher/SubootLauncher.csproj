@@ -15,6 +15,7 @@
     <ItemGroup>
         <!-- Иконка и в exe, и в окнах (Window.Icon берётся из ресурса) -->
         <Resource Include="Assets\suboot.ico"/>
+        <Resource Include="Assets\suboot.png"/>
     </ItemGroup>
 
 </Project>

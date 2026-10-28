@@ -21,6 +21,32 @@ public static class GameLauncher
         return null;
     }
 
+    /// <summary>
+    /// Работает ли Game.exe из этой папки игры — запущенный лаунчером или через Start.bat.
+    /// Процесс другой игры с тем же именем не считается.
+    /// </summary>
+    public static bool IsRunning(string? gamePath)
+    {
+        if (!IsGameFolder(gamePath)) return false;
+        var exe = Path.GetFullPath(ExePath(gamePath!));
+        foreach (var process in Process.GetProcessesByName("Game"))
+        {
+            using (process)
+            {
+                try
+                {
+                    if (string.Equals(process.MainModule?.FileName, exe, StringComparison.OrdinalIgnoreCase)) return true;
+                }
+                catch (Exception)
+                {
+                    // Нет доступа к процессу (запущен от администратора) — считаем, что это наша игра
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     public static void Start(string gamePath, GameSession session, ServerInfo? server)
     {
         var host = server?.Host ?? session.Game.Server;
@@ -40,6 +66,6 @@ public static class GameLauncher
             // Как Start.bat: рабочая папка — корень игры
             WorkingDirectory = gamePath,
             UseShellExecute = false,
-        });
+        })?.Dispose();
     }
 }

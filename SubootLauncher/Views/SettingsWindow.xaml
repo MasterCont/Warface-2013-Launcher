@@ -1,0 +1,26 @@
+<Window x:Class="SubootLauncher.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:l="clr-namespace:SubootLauncher.Services"
+        Title="{l:T Settings.Title}" Width="380" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize" ShowInTaskbar="False"
+        Background="{StaticResource LobbyBackground}">
+    <Border Style="{StaticResource Panel}" Margin="16">
+        <StackPanel>
+            <TextBlock Text="{l:T Settings.Title}" Style="{StaticResource Title}" Margin="0,0,0,12"/>
+
+            <TextBlock Text="{l:T Settings.Language}" Style="{StaticResource Muted}"/>
+            <ComboBox x:Name="LanguageBox" Margin="0,3,0,12"/>
+
+            <TextBlock Text="{l:T Settings.Theme}" Style="{StaticResource Muted}"/>
+            <ComboBox x:Name="ThemeBox" Margin="0,3,0,12"/>
+
+            <TextBlock Text="{l:T Settings.Restart}" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,14"/>
+
+            <StackPanel Orientation="Horizontal">
+                <Button Content="{l:T Settings.Save}" Style="{StaticResource YellowButton}" IsDefault="True" Margin="0,0,8,0" Click="OnSave"/>
+                <Button Content="{l:T Settings.Cancel}" Style="{StaticResource TileButton}" IsCancel="True"/>
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</Window>
