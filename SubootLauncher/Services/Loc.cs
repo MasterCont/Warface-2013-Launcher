@@ -73,6 +73,8 @@ public static class Loc
         ["Server.Degraded"] = "работает частично",
         ["Server.Offline"] = "недоступен",
         ["Server.Players"] = " · игроков: {0}",
+        ["Server.Ping"] = "{0} мс",
+        ["Server.PingFail"] = "нет связи",
 
         ["Password.Title"] = "Смена пароля",
         ["Password.Current"] = "Текущий пароль",
@@ -176,6 +178,8 @@ public static class Loc
         ["Server.Degraded"] = "partially online",
         ["Server.Offline"] = "offline",
         ["Server.Players"] = " · players: {0}",
+        ["Server.Ping"] = "{0} ms",
+        ["Server.PingFail"] = "no reply",
 
         ["Password.Title"] = "Change password",
         ["Password.Current"] = "Current password",

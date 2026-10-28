@@ -63,13 +63,18 @@
                         </ListBox.ItemContainerStyle>
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <StackPanel>
-                                    <StackPanel Orientation="Horizontal">
-                                        <Ellipse Width="9" Height="9" Fill="{Binding StateBrush}" Margin="0,0,7,0"/>
-                                        <TextBlock Text="{Binding Name}" Foreground="White" FontWeight="SemiBold" FontSize="14"/>
+                                <DockPanel>
+                                    <!-- Пинг справа: цвет по задержке -->
+                                    <TextBlock DockPanel.Dock="Right" Text="{Binding PingText}" Foreground="{Binding PingBrush}"
+                                               FontWeight="SemiBold" FontSize="13" VerticalAlignment="Top" Margin="8,0,0,0"/>
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Ellipse Width="9" Height="9" Fill="{Binding StateBrush}" Margin="0,0,7,0"/>
+                                            <TextBlock Text="{Binding Name}" Foreground="White" FontWeight="SemiBold" FontSize="14"/>
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding Details}" Foreground="#FFEAF6FF" FontSize="12"/>
                                     </StackPanel>
-                                    <TextBlock Text="{Binding Details}" Foreground="#FFEAF6FF" FontSize="12"/>
-                                </StackPanel>
+                                </DockPanel>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
