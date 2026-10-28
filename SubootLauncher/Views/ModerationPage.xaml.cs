@@ -30,7 +30,9 @@ public partial class ModerationPage : UserControl, IReturnAware
     {
         InitializeComponent();
         _api = new ApiClient { StaffSession = session };
-        _isAdmin = me.Role == "admin";
+        _isAdmin = me.IsAdmin;
+        // Назначать админов может только главный администратор
+        RoleAdminButton.Visibility = me.IsOwner ? Visibility.Visible : Visibility.Collapsed;
         TabInvites.Visibility = _isAdmin ? Visibility.Visible : Visibility.Collapsed;
         TabAccounts.Visibility = _isAdmin ? Visibility.Visible : Visibility.Collapsed;
         TabShop.Visibility = _isAdmin ? Visibility.Visible : Visibility.Collapsed;

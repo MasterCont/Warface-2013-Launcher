@@ -261,7 +261,7 @@
                             <TextBlock Text="Выбранному:" VerticalAlignment="Center" Margin="0,0,8,0"/>
                             <Button Content="Игрок" Style="{StaticResource TileButton}" Margin="0,0,4,0" Tag="player" Click="OnSetRole"/>
                             <Button Content="Модератор" Style="{StaticResource TileButton}" Margin="0,0,4,0" Tag="moderator" Click="OnSetRole"/>
-                            <Button Content="Админ" Style="{StaticResource TileButton}" Margin="0,0,16,0" Tag="admin" Click="OnSetRole"/>
+                            <Button x:Name="RoleAdminButton" Content="Админ" Style="{StaticResource TileButton}" Margin="0,0,16,0" Tag="admin" Click="OnSetRole"/>
                             <Button Content="Новый временный пароль" Style="{StaticResource TileButton}" Click="OnResetPassword"/>
                         </WrapPanel>
                     </StackPanel>

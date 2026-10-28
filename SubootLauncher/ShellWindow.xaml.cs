@@ -164,6 +164,7 @@ public partial class ShellWindow : Window
         AccountLogin.Text = _me.Login;
         AccountRole.Text = _me.Role switch
         {
+            "owner" => Loc.T("Main.RoleOwner"),
             "admin" => Loc.T("Main.RoleAdmin"),
             "moderator" => Loc.T("Main.RoleModerator"),
             _ => Loc.T("Main.Uid", _me.Uid),
@@ -284,7 +285,7 @@ public partial class ShellWindow : Window
             while (_current.Page is not ModerationPage && _back.Count > 0) Back();
             return;
         }
-        var role = _me.Role == "admin" ? "администратор" : "модератор";
+        var role = _me.Role switch { "owner" => "главный администратор", "admin" => "администратор", _ => "модератор" };
         Navigate(new ModerationPage(_session, _me), $"Модерация — {_me.Login} ({role})");
     }
 

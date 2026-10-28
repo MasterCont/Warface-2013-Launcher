@@ -37,7 +37,12 @@ public record AccountInfo(
     ProfileInfo? Profile,
     AccountBan? Ban = null)
 {
-    public bool IsStaff => Role is "moderator" or "admin";
+    public bool IsStaff => Role is "moderator" or "admin" or "owner";
+
+    /// <summary>Права администратора — у admin и главного администратора (owner).</summary>
+    public bool IsAdmin => Role is "admin" or "owner";
+
+    public bool IsOwner => Role == "owner";
 }
 
 /// <summary>Действующий бан аккаунта (until = null — бессрочный).</summary>
@@ -100,7 +105,7 @@ public record CreatedInvite(string Code, int Id, string? Note, int MaxUses, Date
 public record AccountRow(long Uid, string Login, string Role, DateTime CreatedAt, DateTime? LastLoginAt, DateTime? DisabledAt, string? Nick)
 {
     public string Summary => $"{Uid,-4} {Login}  ·  {Nick ?? "персонаж не создан"}"
-        + (Role != "player" ? $"  ·  {Role}" : "")
+        + (Role switch { "owner" => "  ·  главный админ", "admin" => "  ·  админ", "moderator" => "  ·  модератор", _ => "" })
         + (LastLoginAt is { } last ? $"  ·  вход {last.ToLocalTime():dd.MM HH:mm}" : "");
 }
 
@@ -598,6 +603,10 @@ public class ApiClient
         _ when reason.StartsWith("Role '") => "Недостаточно прав для этого действия",
         _ when reason.StartsWith("Complaint ") && reason.EndsWith(" not found") => "Жалоба не найдена",
         _ when reason.StartsWith("Moderators cannot ") => "Модератор не может наказывать сотрудников — обратитесь к администратору",
+        _ when reason.EndsWith("a member with an equal or higher role") => "Нельзя: у этого сотрудника такая же или более высокая роль",
+        "The owner role is assigned only from the server terminal" => "Главного администратора назначают только из терминала сервера",
+        "You cannot change your own role" => "Свою роль менять нельзя",
+        "You can only assign roles below your own" => "Можно назначать только роли ниже своей",
         _ when reason.StartsWith("You cannot ") && reason.EndsWith(" yourself") => "Нельзя применить это к самому себе",
         _ when reason.StartsWith("Mission ") && reason.EndsWith(" not found") => "Миссия уже сменилась — обновите список",
         _ when reason.StartsWith("time_of_day must be") => "Время суток: Ч:ММ, например 9:06 или 20:30",
