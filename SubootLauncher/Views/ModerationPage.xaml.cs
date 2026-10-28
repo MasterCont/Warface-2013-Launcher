@@ -36,6 +36,10 @@ public partial class ModerationPage : UserControl, IReturnAware
         TabShop.Visibility = _isAdmin ? Visibility.Visible : Visibility.Collapsed;
         PageShop.Init(_api, Status);
         TabAudit.Visibility = _isAdmin ? Visibility.Visible : Visibility.Collapsed;
+        TabMissions.Visibility = _isAdmin ? Visibility.Visible : Visibility.Collapsed;
+        TabServer.Visibility = _isAdmin ? Visibility.Visible : Visibility.Collapsed;
+        PageMissions.Init(_api, Status);
+        PageServer.Init(_api, Status);
         PageAudit.Init(_api, Status);
         PageComplaints.Init(_api, Status, OpenPlayerFromElsewhere);
         PageComplaints.NewCountChanged += count => TabComplaints.Content = count > 0 ? $"Жалобы ({count})" : "Жалобы";
@@ -65,6 +69,8 @@ public partial class ModerationPage : UserControl, IReturnAware
             (TabShop, PageShop, PageShop.LoadOnceAsync),
             (TabComplaints, PageComplaints, PageComplaints.LoadOnceAsync),
             (TabAudit, PageAudit, PageAudit.LoadOnceAsync),
+            (TabMissions, PageMissions, PageMissions.LoadOnceAsync),
+            (TabServer, PageServer, PageServer.LoadOnceAsync),
         };
         foreach (var (tab, page, load) in pages)
         {

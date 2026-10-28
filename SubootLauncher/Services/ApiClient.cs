@@ -229,6 +229,57 @@ public record AuditEntry(long Id, DateTime At, int? KeyId, string? KeyName, stri
         : "(без тела)";
 }
 
+// --- PvE-миссии и сервер ---
+
+public static class MissionNames
+{
+    public static string Difficulty(string difficulty) => difficulty switch
+    {
+        "easy" => "лёгкая",
+        "normal" => "нормальная",
+        "hard" => "сложная",
+        _ => difficulty,
+    };
+
+    public static string Type(string type) => type switch
+    {
+        "trainingmission" => "Обучение",
+        "easymission" => "Лёгкая",
+        "normalmission" => "Нормальная",
+        "hardmission" => "Сложная",
+        _ => type,
+    };
+}
+
+/// <summary>Текущая PvE-миссия из кэша.</summary>
+public record MissionInfo(string Uid, string Type, string Difficulty, string Name, string TimeOfDay, string Map, string MapTitle,
+    string[] Sublevels, int SecondaryObjectives)
+{
+    public string Title => $"{MissionNames.Type(Type)} · {MapTitle}";
+    public string Details => $"{string.Join(" → ", Sublevels)} · {TimeOfDay} · доп. заданий: {SecondaryObjectives}";
+}
+
+public record MissionsData(DateTime? GeneratedAt, MissionInfo[] Missions);
+
+public record SublevelInfo(string Name, string Kind);
+
+public record MapInfo(string Map, string Title, SublevelInfo[] Sublevels);
+
+public record GraphInfo(string Name, string Map, int Stages, string? Boss);
+
+/// <summary>Настройки одного типа миссий; null — как в исходном конфиге.</summary>
+public record TypeSettings(bool? Enabled, string[]? Sublevels, string[]? Graphs, string? TimeOfDay, int? SecondaryMin, int? SecondaryMax);
+
+public record MissionTypeInfo(string Name, string Difficulty, string[] Chain, TypeSettings Defaults, GraphInfo[] Graphs);
+
+public record SavedMissionSettings(Dictionary<string, TypeSettings> Types, Dictionary<string, bool> Publish);
+
+public record MissionSettingsData(SavedMissionSettings? Settings, string? UpdatedBy, string? UpdatedAt, MapInfo[] Maps, MissionTypeInfo[] Types);
+
+public record ComponentState(string Name, string State, string? Channel, int? MinRank, int? MaxRank);
+
+public record ServerStatus(int? Online, ComponentState[] Components, ComponentState[] Channels, ComponentState[]? Dedicated);
+
 /// <summary>Ошибка API с понятным игроку текстом.</summary>
 public class ApiException(string message, int code) : Exception(message)
 {
@@ -402,6 +453,36 @@ public class ApiClient
         SendAsync<AuditEntry[]>(HttpMethod.Get, "/v1/admin/audit?limit=50" + (before != null ? "&before=" + before : "")
             + (search != "" ? "&search=" + Uri.EscapeDataString(search) : "") + (errorsOnly ? "&errors=1" : ""));
 
+    // --- PvE-миссии и обслуживание сервера (админ) ---
+
+    public Task<MissionsData> GetMissionsAsync() => SendAsync<MissionsData>(HttpMethod.Get, "/v1/admin/missions");
+
+    public Task<string> SetMissionTimeAsync(string uid, string time) =>
+        SendForReasonAsync(HttpMethod.Patch, "/v1/admin/missions/" + Uri.EscapeDataString(uid), new { time_of_day = time });
+
+    public Task<string> RemoveMissionAsync(string uid) =>
+        SendForReasonAsync(HttpMethod.Delete, "/v1/admin/missions/" + Uri.EscapeDataString(uid));
+
+    public Task<string> RegenerateMissionsAsync() => SendForReasonAsync(HttpMethod.Post, "/v1/admin/missions/regenerate", new { });
+
+    public Task<MissionSettingsData> GetMissionSettingsAsync() => SendAsync<MissionSettingsData>(HttpMethod.Get, "/v1/admin/missions/settings");
+
+    /// <summary>Сохранить настройки генерации; возвращает предупреждения о несовместимых вариантах.</summary>
+    public async Task<string[]> SaveMissionSettingsAsync(object settings)
+    {
+        var data = await SendAsync<JsonElement>(HttpMethod.Put, "/v1/admin/missions/settings", settings);
+        return data.TryGetProperty("warnings", out var warnings) ? warnings.Deserialize<string[]>() ?? [] : [];
+    }
+
+    public Task<string> ResetMissionSettingsAsync() => SendForReasonAsync(HttpMethod.Delete, "/v1/admin/missions/settings");
+
+    public Task<ServerStatus> GetStatusAsync() => SendAsync<ServerStatus>(HttpMethod.Get, "/v1/status");
+
+    public Task<Dictionary<string, string>> RebuildCachesAsync(params string[] modules) =>
+        SendAsync<Dictionary<string, string>>(HttpMethod.Post, "/v1/admin/caches/rebuild", new { modules });
+
+    public Task<string> BackupAsync() => SendForReasonAsync(HttpMethod.Post, "/v1/admin/backup", new { });
+
     public Task<ItemsPage> GetItemsAsync(string search, string? group, int page) =>
         SendAsync<ItemsPage>(HttpMethod.Get, $"/v1/admin/items?page={page}&search={Uri.EscapeDataString(search)}" + (group != null ? "&group=" + group : ""));
 
@@ -413,6 +494,11 @@ public class ApiClient
         ["Player kicked"] = "Игрок исключён с сервера",
         ["Nickname changed"] = "Ник изменён",
         ["Complaint updated"] = "Жалоба обновлена",
+        ["Mission updated"] = "Миссия изменена — игроки увидят через ~10 с",
+        ["Mission removed"] = "Миссия убрана до следующей генерации",
+        ["Missions regenerated"] = "Миссии сгенерированы заново — игроки увидят через ~10 с",
+        ["Mission settings reset"] = "Настройки генерации сброшены к исходным",
+        ["Backup created in /var/backups/warface"] = "Резервная копия создана (/var/backups/warface)",
         ["Player banned permanently"] = "Игрок заблокирован бессрочно",
         ["Ban revoked"] = "Бан снят",
         ["Invite revoked"] = "Ключ отозван",
@@ -498,6 +584,11 @@ public class ApiClient
         _ when reason.StartsWith("Moderators can ban for at most") => "Модератор может банить максимум на " + reason[31..].Replace(" hours", " ч"),
         _ when reason.StartsWith("Role '") => "Недостаточно прав для этого действия",
         _ when reason.StartsWith("Complaint ") && reason.EndsWith(" not found") => "Жалоба не найдена",
+        _ when reason.StartsWith("Mission ") && reason.EndsWith(" not found") => "Миссия уже сменилась — обновите список",
+        _ when reason.StartsWith("time_of_day must be") => "Время суток: Ч:ММ, например 9:06 или 20:30",
+        _ when reason.StartsWith("Mission generation failed") => "Генерация миссий не удалась — подробности в журнале сервера",
+        _ when reason.StartsWith("Cache rebuild failed") => "Пересборка кэша не удалась: " + reason[22..],
+        _ when reason.StartsWith("Backup failed") => "Резервная копия не создана: " + reason,
         "Player already has this nickname" => "У игрока уже этот ник",
         _ when reason.StartsWith("Nickname must be") => "Ник: 4–16 символов, только кириллица или только латиница, цифры и - . _",
         _ when reason.StartsWith("Nickname '") && reason.EndsWith("' is already taken") => "Ник " + reason[10..^18] + " уже занят",

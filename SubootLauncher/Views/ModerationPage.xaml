@@ -25,7 +25,9 @@
             <RadioButton x:Name="TabInvites" Content="Ключи" Style="{StaticResource TabToggle}" Checked="OnTab"/>
             <RadioButton x:Name="TabAccounts" Content="Аккаунты" Style="{StaticResource TabToggle}" Checked="OnTab"/>
             <RadioButton x:Name="TabShop" Content="Магазин" Style="{StaticResource TabToggle}" Checked="OnTab"/>
+            <RadioButton x:Name="TabMissions" Content="Миссии" Style="{StaticResource TabToggle}" Checked="OnTab"/>
             <RadioButton x:Name="TabAudit" Content="Журнал" Style="{StaticResource TabToggle}" Checked="OnTab"/>
+            <RadioButton x:Name="TabServer" Content="Сервер" Style="{StaticResource TabToggle}" Checked="OnTab"/>
         </WrapPanel>
 
         <Border Grid.Row="1" Style="{StaticResource Panel}">
@@ -235,6 +237,8 @@
                 <!-- Жалобы игроков (модератор) и журнал аудита (админ) -->
                 <views:ComplaintsPanel x:Name="PageComplaints" Visibility="Collapsed"/>
                 <views:AuditPanel x:Name="PageAudit" Visibility="Collapsed"/>
+                <views:MissionsPanel x:Name="PageMissions" Visibility="Collapsed"/>
+                <views:ServerPanel x:Name="PageServer" Visibility="Collapsed"/>
 
                 <!-- Аккаунты (админ) -->
                 <DockPanel x:Name="PageAccounts" Visibility="Collapsed">

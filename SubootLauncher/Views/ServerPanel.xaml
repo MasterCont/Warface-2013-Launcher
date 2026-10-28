@@ -1,0 +1,48 @@
+<UserControl x:Class="SubootLauncher.Views.ServerPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Обслуживание сервера (администратор): состояние служб, кэши, резервная копия -->
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="18"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <DockPanel Grid.Column="0">
+            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                <Button DockPanel.Dock="Right" Content="Обновить" Style="{StaticResource TileButton}" Click="OnRefresh"/>
+                <TextBlock x:Name="OnlineText" Style="{StaticResource Title}" VerticalAlignment="Center"/>
+            </DockPanel>
+            <ListBox x:Name="ServicesList" Style="{StaticResource Rows}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse Width="9" Height="9" Fill="{Binding Brush}" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding Name}" Foreground="#FFF2F2F2" Width="190"/>
+                            <TextBlock Text="{Binding State}" Style="{StaticResource Muted}"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </DockPanel>
+
+        <StackPanel Grid.Column="2">
+            <TextBlock Text="Кэши" Style="{StaticResource Title}"/>
+            <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,4,0,8"
+                       Text="Игровые каналы подхватывают новый кэш сами за ~10 секунд, перезапуск не нужен. Магазин и миссии обычно пересобираются сами после правок в лаунчере."/>
+            <WrapPanel>
+                <Button Content="Магазин" Style="{StaticResource TileButton}" Margin="0,0,6,6" Tag="shop" Click="OnRebuild"/>
+                <Button Content="PvE-миссии" Style="{StaticResource TileButton}" Margin="0,0,6,6" Tag="missions_pve" Click="OnRebuild"/>
+                <Button Content="Кланы" Style="{StaticResource TileButton}" Margin="0,0,6,6" Tag="clan_list" Click="OnRebuild"/>
+                <Button Content="Все" Style="{StaticResource TileButton}" Margin="0,0,6,6" Tag="all" Click="OnRebuild"/>
+            </WrapPanel>
+            <TextBlock x:Name="CacheResult" TextWrapping="Wrap" Margin="0,4,0,0"/>
+
+            <TextBlock Text="Резервная копия" Style="{StaticResource Title}" Margin="0,18,0,0"/>
+            <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,4,0,8"
+                       Text="Копия всей базы в /var/backups/warface. Автоматически делается каждую ночь в 04:30 и перед каждым обновлением сервера."/>
+            <Button Content="Сделать копию сейчас" Style="{StaticResource TileButton}" HorizontalAlignment="Left" Click="OnBackup"/>
+        </StackPanel>
+    </Grid>
+</UserControl>
