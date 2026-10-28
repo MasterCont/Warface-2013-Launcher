@@ -118,6 +118,8 @@ public static class Loc
         ["Api.Unreachable"] = "Сервер недоступен. Проверьте интернет и попробуйте ещё раз",
         ["Api.Error"] = "Ошибка сервера",
         ["Api.BadResponse"] = "Неожиданный ответ сервера, обновите лаунчер",
+        ["App.StartFailed"] = "Лаунчер не смог запуститься:\n\n{0}\n\nПодробности записаны в файл:\n{1}\n\nОтправьте его администратору сервера.",
+        ["App.Stuck"] = "Лаунчер уже запущен, но не отвечает (возможно, завис без окна).\n\nЗакрыть его и запустить заново?",
         ["App.Crash"] = "Непредвиденная ошибка. Лаунчер продолжит работу, но если ошибка повторяется — сообщите администратору.",
     };
 
@@ -217,6 +219,8 @@ public static class Loc
         ["Api.Unreachable"] = "The server is unreachable. Check your connection and try again",
         ["Api.Error"] = "Server error",
         ["Api.BadResponse"] = "Unexpected server response, update the launcher",
+        ["App.StartFailed"] = "The launcher could not start:\n\n{0}\n\nDetails are written to:\n{1}\n\nSend this file to the server administrator.",
+        ["App.Stuck"] = "The launcher is already running but does not respond (it may be stuck without a window).\n\nClose it and start again?",
         ["App.Crash"] = "Unexpected error. The launcher keeps running; if it happens again, tell the administrator.",
     };
 }
