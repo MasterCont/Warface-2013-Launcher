@@ -22,14 +22,26 @@
                     <TextBlock Text="{l:T Main.Character}" Style="{StaticResource Title}" Margin="0,0,0,14"/>
                     <StackPanel x:Name="ProfilePanel" Orientation="Horizontal">
                         <!-- Звание: шестиугольник с номером -->
-                        <Grid Width="72" Height="80" Margin="0,0,16,0">
+                        <Grid x:Name="RankBadge" Width="72" Height="80" Margin="0,0,16,0" RenderTransformOrigin="0.5,0.5">
+                            <Grid.RenderTransform><ScaleTransform x:Name="RankScale"/></Grid.RenderTransform>
                             <Path Stretch="Fill" Fill="{StaticResource YellowGradient}" Data="M 50,0 L 100,25 L 100,75 L 50,100 L 0,75 L 0,25 Z"/>
                             <TextBlock x:Name="RankText" FontSize="28" FontWeight="Bold" Foreground="#FF1A1000" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Grid>
-                        <StackPanel VerticalAlignment="Center">
+                        <StackPanel VerticalAlignment="Center" MinWidth="300">
                             <TextBlock x:Name="NickText" FontSize="26" FontWeight="SemiBold" Foreground="#FFF4F4F4"/>
+                            <TextBlock x:Name="ClanText" Foreground="{StaticResource YellowBrush}" Visibility="Collapsed"/>
                             <TextBlock x:Name="ExperienceText" Style="{StaticResource Muted}"/>
+                            <!-- Прогресс до следующего звания -->
+                            <Grid Height="6" Margin="0,6,0,2">
+                                <Border Background="#FF2C3036" CornerRadius="3"/>
+                                <Border Background="{StaticResource YellowGradient}" CornerRadius="3" HorizontalAlignment="Stretch" RenderTransformOrigin="0,0.5">
+                                    <Border.RenderTransform><ScaleTransform x:Name="ProgressScale" ScaleX="0"/></Border.RenderTransform>
+                                </Border>
+                            </Grid>
+                            <TextBlock x:Name="ProgressText" Style="{StaticResource Muted}" FontSize="11"/>
                             <TextBlock x:Name="MoneyText" Margin="0,8,0,0"/>
+                            <!-- Изменения с последнего обновления: «+1 250 варбаксов», «Новое звание: 5!» -->
+                            <WrapPanel x:Name="DeltaPanel" Margin="0,4,0,0"/>
                         </StackPanel>
                     </StackPanel>
                     <TextBlock x:Name="NoProfileText" Visibility="Collapsed" TextWrapping="Wrap"

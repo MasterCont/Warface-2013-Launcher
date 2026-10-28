@@ -26,7 +26,11 @@ public record ProfileInfo(
     long Experience,
     string? Clan,
     [property: JsonPropertyName("pvp_rating_points")] long PvpRatingPoints,
-    MoneyInfo Money);
+    MoneyInfo Money,
+    RankProgressInfo? RankProgress = null);
+
+/// <summary>Границы текущего звания: опыт начала и следующего звания (null — звание последнее).</summary>
+public record RankProgressInfo(int Rank, long Current, long? Next);
 
 public record AccountInfo(
     long Uid,

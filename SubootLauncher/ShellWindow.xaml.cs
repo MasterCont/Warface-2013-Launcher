@@ -25,7 +25,10 @@ public partial class ShellWindow : Window
     private AccountInfo? _me;
 
     // Слежение за аккаунтом, пока лаунчер открыт: бан, снятие бана, смена роли, завершённая сессия
-    private readonly DispatcherTimer _accountWatch = new() { Interval = TimeSpan.FromSeconds(30) };
+    private readonly DispatcherTimer _accountWatch = new() { Interval = TimeSpan.FromSeconds(15) };
+
+    /// <summary>Последние данные аккаунта (для главной при возврате на неё).</summary>
+    public AccountInfo? Account => _me;
     private DateTime _lastCheck = DateTime.MinValue;
     private bool _checking;
 
@@ -105,6 +108,8 @@ public partial class ShellWindow : Window
             _me = me;
             UpdateHeader();
             if (roleChanged) ApplyRole(me);
+            // Главная на экране — деньги, опыт, звание, ник и клан обновляются с анимацией
+            (_current.Page as HomePage)?.UpdateAccount(me);
         }
         catch (ApiException error) when (error.Code == 401)
         {
