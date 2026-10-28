@@ -55,12 +55,35 @@ public partial class ShellWindow : Window
         SetRoot(new LoginPage());
     }
 
+    /// <summary>Главная — или страница блокировки, если у аккаунта действует бан.</summary>
     public void ShowHome(string session, AccountInfo me)
     {
         _session = session;
         _me = me;
         UpdateHeader();
-        SetRoot(new HomePage(session, me));
+        SetRoot(me.Ban != null ? new BannedPage(session, me) : new HomePage(session, me));
+    }
+
+    /// <summary>Переключатель учётных записей: поверх текущей страницы или корнем, если вход не выполнен.</summary>
+    public void ShowAccounts()
+    {
+        if (_current.Page is AccountsPage) return;
+        if (_me == null)
+        {
+            UpdateHeader();
+            SetRoot(new AccountsPage(null));
+            return;
+        }
+        Navigate(new AccountsPage(_me.Login), Loc.T("Accounts.Title"));
+    }
+
+    /// <summary>После выхода: к другим сохранённым учётным записям или ко входу.</summary>
+    public void AfterLogout()
+    {
+        _session = null;
+        _me = null;
+        if (AccountStore.All.Count > 0) ShowAccounts();
+        else ShowLogin();
     }
 
     /// <summary>Главная обновила данные аккаунта (роль могла измениться).</summary>
@@ -74,7 +97,9 @@ public partial class ShellWindow : Window
     {
         var loggedIn = _me != null;
         AccountPanel.Visibility = PasswordButton.Visibility = LogoutButton.Visibility = loggedIn ? Visibility.Visible : Visibility.Collapsed;
-        StaffButton.Visibility = _me?.IsStaff == true ? Visibility.Visible : Visibility.Collapsed;
+        // Заблокированному — без модерации: права всё равно проверяет сервер, а страница блокировки важнее
+        StaffButton.Visibility = _me?.IsStaff == true && _me.Ban == null ? Visibility.Visible : Visibility.Collapsed;
+        AccountsButton.Visibility = loggedIn || AccountStore.All.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
         if (_me == null) return;
         AccountLogin.Text = _me.Login;
         AccountRole.Text = _me.Role switch
@@ -126,6 +151,8 @@ public partial class ShellWindow : Window
         while (_back.Count > 0) Back();
     }
 
+    private void OnAccounts(object sender, RoutedEventArgs e) => ShowAccounts();
+
     private void OnSettings(object sender, RoutedEventArgs e) => Navigate(new SettingsPage(), Loc.T("Settings.Title"));
 
     private void OnChangePassword(object sender, RoutedEventArgs e)
@@ -146,13 +173,14 @@ public partial class ShellWindow : Window
         Navigate(new ModerationPage(_session, _me), $"Модерация — {_me.Login} ({role})");
     }
 
+    // Выход завершает сессию и убирает учётную запись из сохранённых
     private async void OnLogout(object sender, RoutedEventArgs e)
     {
         if (_session != null)
         {
             try { await App.Api.LogoutAsync(_session); } catch (ApiException) { /* сессия могла уже истечь */ }
         }
-        Settings.ForgetSession();
-        ShowLogin();
+        if (_me != null) AccountStore.Remove(_me.Login);
+        AfterLogout();
     }
 }

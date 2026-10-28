@@ -21,6 +21,7 @@
                     <TextBlock x:Name="AccountRole" HorizontalAlignment="Right" Style="{StaticResource Muted}"/>
                 </StackPanel>
                 <Button x:Name="StaffButton" Content="{l:T Main.Staff}" Style="{StaticResource TileButton}" Margin="0,0,6,0" Visibility="Collapsed" Click="OnStaff"/>
+                <Button x:Name="AccountsButton" Content="{l:T Main.Accounts}" Style="{StaticResource TileButton}" Margin="0,0,6,0" Visibility="Collapsed" Click="OnAccounts"/>
                 <Button Content="{l:T Common.Settings}" Style="{StaticResource TileButton}" Margin="0,0,6,0" Click="OnSettings"/>
                 <Button x:Name="PasswordButton" Content="{l:T Main.ChangePassword}" Style="{StaticResource TileButton}" Margin="0,0,6,0" Visibility="Collapsed" Click="OnChangePassword"/>
                 <Button x:Name="LogoutButton" Content="{l:T Main.Logout}" Style="{StaticResource TileButton}" Visibility="Collapsed" Click="OnLogout"/>

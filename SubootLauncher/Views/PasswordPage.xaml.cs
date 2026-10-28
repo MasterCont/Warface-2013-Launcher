@@ -33,7 +33,7 @@ public partial class PasswordPage : UserControl
         {
             await App.Api.ChangePasswordAsync(_login, OldBox.Password, NewBox.Password);
             var session = await App.Api.LoginAsync(_login, NewBox.Password, remember: true);
-            if (Settings.LoadSession() != null) Settings.SaveSession(session.Session!);
+            AccountStore.Replace(_login, session.Session!);
             MessageBox.Show(App.Shell, Loc.T("Password.Done"), Loc.T("Password.Title"));
             App.Shell.Back();
         }

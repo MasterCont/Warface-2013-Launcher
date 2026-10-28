@@ -34,10 +34,14 @@ public record AccountInfo(
     string Role,
     [property: JsonPropertyName("created_at")] DateTime CreatedAt,
     [property: JsonPropertyName("last_login_at")] DateTime? LastLoginAt,
-    ProfileInfo? Profile)
+    ProfileInfo? Profile,
+    AccountBan? Ban = null)
 {
     public bool IsStaff => Role is "moderator" or "admin";
 }
+
+/// <summary>Действующий бан аккаунта (until = null — бессрочный).</summary>
+public record AccountBan(long Id, string Reason, DateTime? Until, DateTime CreatedAt);
 
 public record GameInfo(string Version, string Server, int Port);
 

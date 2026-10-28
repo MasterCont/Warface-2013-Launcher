@@ -188,9 +188,21 @@ public partial class HomePage : UserControl
         }
         catch (ApiException error) when (error.Code == 401)
         {
-            Settings.ForgetSession();
+            AccountStore.Remove(_me.Login);
             MessageBox.Show(App.Shell, error.Message, Loc.T("Main.LoginTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
             App.ShowLogin();
+        }
+        catch (ApiException error) when (error.Code == 403)
+        {
+            // Пока лаунчер был открыт, аккаунт заблокировали — показываем страницу блокировки
+            try
+            {
+                App.ShowMain(_session, await App.Api.GetMeAsync(_session));
+            }
+            catch (ApiException)
+            {
+                StatusText.Text = error.Message;
+            }
         }
         catch (Exception error)
         {

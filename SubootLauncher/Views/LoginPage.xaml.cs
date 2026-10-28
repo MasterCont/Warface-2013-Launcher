@@ -67,7 +67,7 @@ public partial class LoginPage : UserControl
             }
             // Сессия нужна главному окну всегда; «Запомнить» решает только, сохранять ли её на диск
             var session = await App.Api.LoginAsync(login, password, remember: true);
-            if (RememberBox.IsChecked == true) Settings.SaveSession(session.Session!);
+            if (RememberBox.IsChecked == true) AccountStore.Save(session.Login, session.Session!);
             var me = await App.Api.GetMeAsync(session.Session!);
 
             App.ShowMain(session.Session!, me);

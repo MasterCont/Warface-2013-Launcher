@@ -52,23 +52,32 @@ public partial class App : Application
         // Общие для обеих тем стили (списки, поля, логотип) — после темы, они ссылаются на её кисти
         Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("Themes/Shared.xaml", UriKind.Relative) });
 
-        var session = Settings.LoadSession();
-        if (session != null)
+        // Последняя использованная учётная запись; истёкшие сессии убираем и пробуем следующую
+        await AccountStore.MigrateAsync(Api);
+        foreach (var account in AccountStore.All)
         {
             try
             {
-                var me = await Api.GetMeAsync(session);
-                ShowMain(session, me);
+                var me = await Api.GetMeAsync(account.Session);
+                AccountStore.Touch(account.Login);
+                ShowMain(account.Session, me);
                 return;
             }
             catch (ApiException error) when (error.Code == 401)
             {
-                Settings.ForgetSession();
+                AccountStore.Remove(account.Login);
             }
             catch (ApiException)
             {
-                // Сервер недоступен — покажем окно входа, там будет видна ошибка
+                // Сервер недоступен — покажем вход, там будет видна ошибка
+                break;
             }
+        }
+        if (AccountStore.All.Count > 0)
+        {
+            EnsureShell();
+            Shell.ShowAccounts();
+            return;
         }
         ShowLogin();
     }
