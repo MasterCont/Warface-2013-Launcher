@@ -99,7 +99,8 @@ public partial class ShellWindow : Window
         AccountPanel.Visibility = PasswordButton.Visibility = LogoutButton.Visibility = loggedIn ? Visibility.Visible : Visibility.Collapsed;
         // Заблокированному — без модерации: права всё равно проверяет сервер, а страница блокировки важнее
         StaffButton.Visibility = _me?.IsStaff == true && _me.Ban == null ? Visibility.Visible : Visibility.Collapsed;
-        AccountsButton.Visibility = loggedIn || AccountStore.All.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        // Вошли — переключение в списке под ником; не вошли, но есть сохранённые — отдельная кнопка «Аккаунты»
+        AccountsButton.Visibility = !loggedIn && AccountStore.All.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
         if (_me == null) return;
         AccountLogin.Text = _me.Login;
         AccountRole.Text = _me.Role switch
@@ -152,6 +153,61 @@ public partial class ShellWindow : Window
     }
 
     private void OnAccounts(object sender, RoutedEventArgs e) => ShowAccounts();
+
+    // --- Список аккаунтов под ником ---
+
+    private void OnAccountMenu(object sender, RoutedEventArgs e)
+    {
+        AccountMenuList.ItemsSource = AccountStore.All.Select(a => new
+        {
+            a.Login,
+            Mark = string.Equals(a.Login, _me?.Login, StringComparison.OrdinalIgnoreCase) ? "✓" : "",
+        }).ToList();
+    }
+
+    private async void OnMenuSwitch(object sender, RoutedEventArgs e)
+    {
+        AccountToggle.IsChecked = false;
+        var login = (string)((Button)sender).Tag;
+        if (string.Equals(login, _me?.Login, StringComparison.OrdinalIgnoreCase)) return;
+        var error = await SwitchToAsync(login);
+        if (error != null) MessageBox.Show(this, error, Loc.T("Accounts.Title"), MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+
+    private void OnMenuAdd(object sender, RoutedEventArgs e)
+    {
+        AccountToggle.IsChecked = false;
+        Navigate(new LoginPage(), Loc.T("Accounts.Add"));
+    }
+
+    private void OnMenuManage(object sender, RoutedEventArgs e)
+    {
+        AccountToggle.IsChecked = false;
+        ShowAccounts();
+    }
+
+    /// <summary>Переключиться на сохранённую учётную запись. Возвращает текст ошибки или null.</summary>
+    public async Task<string?> SwitchToAsync(string login)
+    {
+        if (AccountStore.Find(login) is not { } account) return null;
+        try
+        {
+            var me = await App.Api.GetMeAsync(account.Session);
+            AccountStore.Touch(login);
+            App.ShowMain(account.Session, me);
+            return null;
+        }
+        catch (ApiException error) when (error.Code == 401)
+        {
+            AccountStore.Remove(login);
+            UpdateHeader();
+            return Loc.T("Accounts.Expired", login);
+        }
+        catch (ApiException error)
+        {
+            return error.Message;
+        }
+    }
 
     private void OnSettings(object sender, RoutedEventArgs e) => Navigate(new SettingsPage(), Loc.T("Settings.Title"));
 

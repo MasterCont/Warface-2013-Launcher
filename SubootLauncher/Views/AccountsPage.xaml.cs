@@ -40,23 +40,8 @@ public partial class AccountsPage : UserControl
     {
         var login = (string)((Button)sender).Tag;
         if (AccountStore.Find(login) is not { } account) return;
-        StatusText.Text = "";
-        try
-        {
-            var me = await App.Api.GetMeAsync(account.Session);
-            AccountStore.Touch(login);
-            App.ShowMain(account.Session, me);
-        }
-        catch (ApiException error) when (error.Code == 401)
-        {
-            AccountStore.Remove(login);
-            StatusText.Text = Loc.T("Accounts.Expired", login);
-            Refresh();
-        }
-        catch (ApiException error)
-        {
-            StatusText.Text = error.Message;
-        }
+        StatusText.Text = await App.Shell.SwitchToAsync(account.Login) ?? "";
+        Refresh();
     }
 
     private async void OnRemove(object sender, RoutedEventArgs e)

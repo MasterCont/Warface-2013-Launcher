@@ -48,6 +48,53 @@
         </Setter>
     </Style>
 
+    <!-- Блок аккаунта в шапке: кнопка без рамки, подсветка при наведении и пока открыт список -->
+    <Style x:Key="AccountToggle" TargetType="ToggleButton">
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Focusable" Value="False"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="Box" Background="Transparent" CornerRadius="3" Padding="8,3">
+                        <ContentPresenter/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Box" Property="Background" Value="#22FFFFFF"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Box" Property="Background" Value="#33FFFFFF"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Пункт выпадающего списка аккаунтов -->
+    <Style x:Key="MenuRow" TargetType="Button">
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Foreground" Value="#FFDFE2E6"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Box" Background="Transparent" Padding="12,7">
+                        <ContentPresenter>
+                            <ContentPresenter.Resources><Style TargetType="TextBlock"/></ContentPresenter.Resources>
+                        </ContentPresenter>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Box" Property="Background" Value="#FF262A2F"/>
+                            <Setter Property="Foreground" Value="{DynamicResource YellowBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- Выпадающие списки: тёмные, как поля ввода, вместо белых системных -->
     <Style x:Key="ComboToggle" TargetType="ToggleButton">
         <Setter Property="Focusable" Value="False"/>

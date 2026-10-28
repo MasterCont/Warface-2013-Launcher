@@ -16,10 +16,41 @@
         <!-- Шапка: логотип сайта (шестигранник «W») и аккаунт -->
         <DockPanel Grid.Row="0" Margin="0,0,0,14">
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                <StackPanel x:Name="AccountPanel" Margin="0,0,14,0" HorizontalAlignment="Right" Visibility="Collapsed">
-                    <TextBlock x:Name="AccountLogin" HorizontalAlignment="Right" Foreground="#FFF4F4F4" FontWeight="SemiBold"/>
-                    <TextBlock x:Name="AccountRole" HorizontalAlignment="Right" Style="{StaticResource Muted}"/>
-                </StackPanel>
+                <!-- Аккаунт: по щелчку — список сохранённых учётных записей для переключения -->
+                <Grid x:Name="AccountPanel" Margin="0,0,10,0" Visibility="Collapsed" VerticalAlignment="Center">
+                    <ToggleButton x:Name="AccountToggle" Style="{StaticResource AccountToggle}" Checked="OnAccountMenu">
+                        <StackPanel Orientation="Horizontal">
+                            <StackPanel HorizontalAlignment="Right">
+                                <TextBlock x:Name="AccountLogin" HorizontalAlignment="Right" Foreground="#FFF4F4F4" FontWeight="SemiBold"/>
+                                <TextBlock x:Name="AccountRole" HorizontalAlignment="Right" Style="{StaticResource Muted}"/>
+                            </StackPanel>
+                            <Path Data="M 0,0 L 4,4 L 8,0 Z" Fill="#FFB8BDC4" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                        </StackPanel>
+                    </ToggleButton>
+                    <Popup x:Name="AccountMenu" PlacementTarget="{Binding ElementName=AccountToggle}" Placement="Bottom"
+                           StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade"
+                           IsOpen="{Binding IsChecked, ElementName=AccountToggle, Mode=TwoWay}">
+                        <Border Background="#FF15171A" BorderBrush="{StaticResource YellowBrush}" BorderThickness="1" MinWidth="240" Margin="0,4,0,0">
+                            <StackPanel>
+                                <ItemsControl x:Name="AccountMenuList">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Button Style="{StaticResource MenuRow}" Tag="{Binding Login}" Click="OnMenuSwitch">
+                                                <DockPanel>
+                                                    <TextBlock DockPanel.Dock="Right" Text="{Binding Mark}" Foreground="{StaticResource YellowBrush}" Margin="10,0,0,0"/>
+                                                    <TextBlock Text="{Binding Login}" FontWeight="SemiBold"/>
+                                                </DockPanel>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <Rectangle Height="1" Fill="#FF2C3036" Margin="0,2"/>
+                                <Button Style="{StaticResource MenuRow}" Content="{l:T Accounts.Add}" Click="OnMenuAdd"/>
+                                <Button Style="{StaticResource MenuRow}" Content="{l:T Accounts.Manage}" Click="OnMenuManage"/>
+                            </StackPanel>
+                        </Border>
+                    </Popup>
+                </Grid>
                 <Button x:Name="StaffButton" Content="{l:T Main.Staff}" Style="{StaticResource TileButton}" Margin="0,0,6,0" Visibility="Collapsed" Click="OnStaff"/>
                 <Button x:Name="AccountsButton" Content="{l:T Main.Accounts}" Style="{StaticResource TileButton}" Margin="0,0,6,0" Visibility="Collapsed" Click="OnAccounts"/>
                 <Button Content="{l:T Common.Settings}" Style="{StaticResource TileButton}" Margin="0,0,6,0" Click="OnSettings"/>
